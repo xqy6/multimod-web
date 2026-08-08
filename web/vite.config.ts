@@ -6,6 +6,7 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  base: process.env.GITHUB_PAGES === "true" ? "/multimod-web/" : "/",
   plugins: [
     react(),
     tailwindcss(),
@@ -19,15 +20,15 @@ export default defineConfig({
         theme_color: "#0a0b10",
         background_color: "#0a0b10",
         display: "standalone",
-        start_url: "/",
+        start_url: "./",
         icons: [
           {
-            src: "/icons/icon-192.png",
+            src: "icons/icon-192.png",
             sizes: "192x192",
             type: "image/png",
           },
           {
-            src: "/icons/icon-512.png",
+            src: "icons/icon-512.png",
             sizes: "512x512",
             type: "image/png",
           },
@@ -36,7 +37,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,jpg,jpeg,svg,webp,json,woff2}"],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
-        navigateFallback: "/index.html",
+        navigateFallback: "index.html",
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
