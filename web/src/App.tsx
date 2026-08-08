@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
 import { RequireAuth } from "@/app/guards/RequireAuth";
+import GeneratorPage from "@/pages/GeneratorPage";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
@@ -37,10 +38,7 @@ export default function App() {
           element={
             <RequireAuth>
               <AppShell>
-                <PlaceholderPage
-                  title="生成器"
-                  description="这里将实现 vibe 描述、模块选择、素材上传与代码预览。"
-                />
+                <GeneratorPage />
               </AppShell>
             </RequireAuth>
           }

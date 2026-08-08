@@ -32,3 +32,4 @@ pnpm dev
 - M0：Vite + React + TypeScript + Tailwind CSS v4 + Framer Motion 工程骨架。
 - M1：品牌首页，包含用户视频、CC0 动漫背景素材与完整模块结构。
 - M2：Supabase 登录、个人工作台、项目创建/删除/重命名，未配置时自动进入本地演示模式。
+- M3：网站生成器，支持 vibe 风格解析、模块选择、图片/文字素材上传、实时预览与 ZIP 导出。

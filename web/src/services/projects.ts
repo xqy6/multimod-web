@@ -5,6 +5,7 @@ export interface Project {
   title: string;
   vibe_prompt: string;
   modules: string[];
+  style_params: Record<string, unknown> | null;
   status: "draft" | "generating" | "preview" | "exported";
   created_at: string;
   updated_at: string;
@@ -56,6 +57,7 @@ export async function createProject(input: {
       title: input.title,
       vibe_prompt: input.vibe_prompt ?? "",
       modules: input.modules ?? [],
+      style_params: null,
       status: "draft",
       created_at: nowIso(),
       updated_at: nowIso(),
@@ -72,6 +74,7 @@ export async function createProject(input: {
       title: input.title,
       vibe_prompt: input.vibe_prompt ?? "",
       modules: input.modules ?? [],
+      style_params: {},
       status: "draft",
     })
     .select()
@@ -108,5 +111,47 @@ export async function deleteProject(
     return { error: null };
   }
   const { error } = await supabase.from("projects").delete().eq("id", id);
+  return { error: error?.message ?? null };
+}
+
+export async function getProject(
+  id: string,
+): Promise<{ data: Project | null; error: string | null }> {
+  if (!supabase) {
+    const project = readDemoProjects().find((item) => item.id === id);
+    return { data: project ?? null, error: project ? null : "项目不存在" };
+  }
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return { data: data as Project | null, error: error?.message ?? null };
+}
+
+export async function updateProject(
+  id: string,
+  patch: Partial<
+    Pick<
+      Project,
+      "title" | "vibe_prompt" | "modules" | "status" | "style_params"
+    >
+  >,
+): Promise<{ error: string | null }> {
+  if (!supabase) {
+    const projects = readDemoProjects();
+    writeDemoProjects(
+      projects.map((project) =>
+        project.id === id
+          ? { ...project, ...patch, updated_at: nowIso() }
+          : project,
+      ),
+    );
+    return { error: null };
+  }
+  const { error } = await supabase
+    .from("projects")
+    .update({ ...patch, updated_at: nowIso() })
+    .eq("id", id);
   return { error: error?.message ?? null };
 }
