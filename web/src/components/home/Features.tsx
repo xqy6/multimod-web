@@ -3,6 +3,7 @@ import {
   ArrowUpRight,
   Gamepad2,
   Globe2,
+  HardDrive,
   MessageSquareText,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -37,6 +38,15 @@ const features = [
     image: "/assets/chat-cover.jpg",
     alt: "二次元风格实时聊天室配图",
   },
+  {
+    icon: HardDrive,
+    title: "百度网盘式文件管理",
+    description:
+      "文件夹树、对象存储去重、分片上传与回收站，文件真实存储在服务器磁盘。",
+    href: "/netdisk",
+    image: "/assets/showcase-brand.jpg",
+    alt: "网盘文件管理界面配图",
+  },
 ];
 
 export function Features() {
@@ -47,11 +57,11 @@ export function Features() {
     >
       <SectionHeading
         eyebrow="功能板块"
-        title="三大核心模块，一个平台"
-        description="每个模块独立可交付，也能组合进 AI 生成网站：从氛围描述到可运行前端，一次完成。"
+        title="四大核心模块，一个平台"
+        description="游戏、浏览器、聊天室与网盘独立可交付，也能组合进 AI 生成网站。"
       />
 
-      <div className="mt-14 grid gap-6 md:grid-cols-3">
+      <div className="mt-14 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {features.map((feature, index) => (
           <motion.article
             key={feature.title}

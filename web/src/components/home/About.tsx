@@ -5,7 +5,7 @@ import { ButtonLink } from "@/components/ui/ButtonLink";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 const stats = [
-  { icon: Layers, value: "3", label: "核心功能模块" },
+  { icon: Layers, value: "4", label: "核心功能模块" },
   { icon: Zap, value: "0", label: "台自建服务器" },
   { icon: Rocket, value: "1", label: "个 ZIP 部署包" },
 ];

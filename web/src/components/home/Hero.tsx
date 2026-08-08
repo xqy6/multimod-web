@@ -98,7 +98,7 @@ export function Hero() {
             className="mt-7 max-w-xl text-base leading-8 text-mist-400 sm:text-lg"
           >
             从 vibe 氛围到 UI 效果图、交互原型，再到完整可部署的前端代码。
-            小游戏中心、内置浏览器、实时聊天室，按需组合，一次生成。
+            小游戏中心、内置浏览器、实时聊天室、网盘，按需组合，一次生成。
           </motion.p>
 
           <motion.div
