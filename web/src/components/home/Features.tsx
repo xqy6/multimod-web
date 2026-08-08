@@ -9,6 +9,7 @@ import {
 import { Link } from "react-router-dom";
 
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { assetUrl } from "@/lib/assets";
 
 const features = [
   {
@@ -96,7 +97,7 @@ export function Features() {
             </Link>
             <div className="mt-6">
               <img
-                src={feature.image}
+                src={assetUrl(feature.image)}
                 alt={feature.alt}
                 loading="lazy"
                 decoding="async"
