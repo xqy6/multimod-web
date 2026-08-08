@@ -13,6 +13,7 @@ import {
 import { useEffect, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { browserProxyUrl } from "@/lib/config";
 import {
   addBookmark,
   addBrowserHistory,
@@ -53,6 +54,9 @@ export default function BrowserPage() {
   const activeTab = tabs.find((tab) => tab.id === activeId) ?? tabs[0];
   const restricted = isRestrictedUrl(activeTab.url);
   const bookmarked = isBookmarked(activeTab.url);
+  const iframeSrc = browserProxyUrl
+    ? `${browserProxyUrl}?url=${encodeURIComponent(activeTab.url)}`
+    : activeTab.url;
 
   useEffect(() => {
     setHistory(getBrowserHistory());
@@ -249,10 +253,26 @@ export default function BrowserPage() {
           {restricted ? (
             <div className="flex items-center gap-3 border-b border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-200">
               <Globe className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>
+              <span className="flex-1">
                 {hostName(activeTab.url)} 通常拒绝被嵌入，可能显示空白或错误页。
                 可以尝试其他可嵌入站点。
               </span>
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(activeTab.url, "_blank", "noopener,noreferrer")
+                }
+                className="shrink-0 rounded-full bg-amber-300/15 px-4 py-2 text-xs font-semibold text-amber-200 ring-1 ring-amber-300/30 transition-colors hover:bg-amber-300/25"
+              >
+                在系统浏览器打开
+              </button>
+            </div>
+          ) : null}
+
+          {browserProxyUrl ? (
+            <div className="flex items-center gap-2 border-b border-mint-300/20 bg-mint-300/10 px-4 py-2 text-xs text-mint-200">
+              <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+              代理模式已开启，页面通过 Cloudflare Worker 加载。
             </div>
           ) : null}
 
@@ -266,7 +286,7 @@ export default function BrowserPage() {
             <iframe
               key={`${activeTab.id}-${frameKey}`}
               title={activeTab.title}
-              src={activeTab.url}
+              src={iframeSrc}
               referrerPolicy="no-referrer"
               onLoad={() => setLoading(false)}
               className="h-[68vh] min-h-[420px] w-full bg-white"

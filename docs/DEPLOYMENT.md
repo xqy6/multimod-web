@@ -46,3 +46,7 @@ VITE_SUPABASE_ANON_KEY=你的 anon key
 - [ ] 移动端 390px 无横向滚动
 - [ ] 生产构建通过：`pnpm build`
 - [ ] CI 通过：`pnpm test && pnpm build`
+
+## 5. 可选：内置浏览器代理
+
+如果希望内置浏览器打开百度等拒绝嵌入的站点，可以部署 `proxy/worker.js` 到 Cloudflare Workers，并在 Vercel 环境变量中添加 `VITE_PROXY_URL`。完整说明见 `proxy/README.md`。
