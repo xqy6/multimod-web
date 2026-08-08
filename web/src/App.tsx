@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
 import { RequireAuth } from "@/app/guards/RequireAuth";
+import GamesPage from "@/pages/GamesPage";
 import GeneratorPage from "@/pages/GeneratorPage";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
@@ -48,10 +49,7 @@ export default function App() {
           element={
             <RequireAuth>
               <AppShell>
-                <PlaceholderPage
-                  title="小游戏中心"
-                  description="2048、贪吃蛇、俄罗斯方块将在后续迭代中开放。"
-                />
+                <GamesPage />
               </AppShell>
             </RequireAuth>
           }
