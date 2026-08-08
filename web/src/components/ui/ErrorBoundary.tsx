@@ -26,7 +26,9 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-mint-300">
             页面出错了
           </p>
-          <h1 className="mt-4 text-3xl font-bold sm:text-4xl">遇到了一点问题</h1>
+          <h1 className="mt-4 text-3xl font-bold sm:text-4xl">
+            遇到了一点问题
+          </h1>
           <p className="mt-4 max-w-lg text-sm leading-7 text-mist-400">
             {this.state.error.message}
           </p>

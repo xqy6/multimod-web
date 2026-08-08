@@ -149,7 +149,9 @@ function buildStyle(config: ThemeConfig): string {
 function buildModules(modules: string[]): string {
   const selected = modules
     .map((id) => moduleInfo[id])
-    .filter((info): info is { name: string; description: string } => Boolean(info));
+    .filter((info): info is { name: string; description: string } =>
+      Boolean(info),
+    );
   if (selected.length === 0) {
     return "";
   }
@@ -179,7 +181,9 @@ function buildModules(modules: string[]): string {
 }
 
 function buildGallery(assets: SiteAsset[]): string {
-  const images = assets.filter((asset) => asset.dataUrl.startsWith("data:image"));
+  const images = assets.filter((asset) =>
+    asset.dataUrl.startsWith("data:image"),
+  );
   if (images.length === 0) return "";
   return `
     <section class="section" id="gallery">
@@ -205,8 +209,7 @@ function buildGallery(assets: SiteAsset[]): string {
 
 export function renderSiteHtml(input: RenderInput): string {
   const { title, vibe, config, modules, assets } = input;
-  const headline =
-    title.trim() || "用一句话描述氛围，生成可运行的多功能网站";
+  const headline = title.trim() || "用一句话描述氛围，生成可运行的多功能网站";
   const subtitle =
     vibe.trim() ||
     "从 vibe 氛围到 UI 效果图、交互原型，再到完整可部署的前端代码。";

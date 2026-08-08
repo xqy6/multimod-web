@@ -23,7 +23,7 @@ function toAppUser(session: Session | null): AppUser | null {
     display_name:
       typeof meta.display_name === "string"
         ? meta.display_name
-        : session.user.email?.split("@")[0] ?? "用户",
+        : (session.user.email?.split("@")[0] ?? "用户"),
     isDemo: false,
   };
 }
@@ -37,9 +37,7 @@ export async function getSession(): Promise<{
   return { session: data.session, error: error?.message ?? null };
 }
 
-export function onAuthStateChange(
-  callback: (session: Session | null) => void,
-) {
+export function onAuthStateChange(callback: (session: Session | null) => void) {
   if (!supabase) return { unsubscribe: () => undefined };
   const { data } = supabase.auth.onAuthStateChange((_event, session) => {
     callback(session);

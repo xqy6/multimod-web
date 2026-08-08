@@ -23,17 +23,13 @@ export function TetrisGame({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [state, setState] = useState<TetrisState>(() => createTetris());
   const [paused, setPaused] = useState(false);
-  const pausedRef = useRef(paused);
-  pausedRef.current = paused;
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setState((current) =>
-        pausedRef.current ? current : stepTetris(current),
-      );
+      setState((current) => (paused ? current : stepTetris(current)));
     }, 500);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [paused]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

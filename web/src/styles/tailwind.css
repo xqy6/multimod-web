@@ -1,29 +1,73 @@
 @import "tailwindcss";
 
+:root {
+  --ink-950: #0a0b10;
+  --ink-900: #11131a;
+  --ink-800: #191c26;
+  --ink-700: #242834;
+  --mist-100: #f4f5f8;
+  --mist-200: #dfe1e8;
+  --mist-300: #c5c8d2;
+  --mist-400: #9ba0ad;
+  --mist-500: #757a88;
+  --mint-200: #c7f0df;
+  --mint-300: #9ee4c5;
+  --mint-400: #6fcba4;
+  --peach-200: #f7ddc3;
+  --peach-300: #eebd98;
+  --peach-400: #dc986a;
+  --lilac-200: #d5d3f2;
+  --lilac-300: #b2afe3;
+  --lilac-400: #8e8acb;
+  --amber-300: #f2d29b;
+}
+
+[data-theme="light"] {
+  --ink-950: #f6f6f4;
+  --ink-900: #ffffff;
+  --ink-800: #eceef2;
+  --ink-700: #dfe3ea;
+  --mist-100: #191b21;
+  --mist-200: #2c2f38;
+  --mist-300: #4b4f5a;
+  --mist-400: #6d7280;
+  --mist-500: #8b909c;
+  --mint-200: #2f7d63;
+  --mint-300: #3e8f72;
+  --mint-400: #2f7d63;
+  --peach-200: #a35f35;
+  --peach-300: #b87647;
+  --peach-400: #c98a58;
+  --lilac-200: #5f5ba8;
+  --lilac-300: #6f6bb4;
+  --lilac-400: #837fc4;
+  --amber-300: #a9791f;
+}
+
 @theme {
-  --color-ink-950: #0a0b10;
-  --color-ink-900: #11131a;
-  --color-ink-800: #191c26;
-  --color-ink-700: #242834;
-  --color-mist-100: #f4f5f8;
-  --color-mist-200: #dfe1e8;
-  --color-mist-300: #c5c8d2;
-  --color-mist-400: #9ba0ad;
-  --color-mist-500: #757a88;
-  --color-mint-200: #c7f0df;
-  --color-mint-300: #9ee4c5;
-  --color-mint-400: #6fcba4;
-  --color-peach-200: #f7ddc3;
-  --color-peach-300: #eebd98;
-  --color-peach-400: #dc986a;
-  --color-lilac-200: #d5d3f2;
-  --color-lilac-300: #b2afe3;
-  --color-lilac-400: #8e8acb;
-  --color-amber-300: #f2d29b;
+  --color-ink-950: var(--ink-950);
+  --color-ink-900: var(--ink-900);
+  --color-ink-800: var(--ink-800);
+  --color-ink-700: var(--ink-700);
+  --color-mist-100: var(--mist-100);
+  --color-mist-200: var(--mist-200);
+  --color-mist-300: var(--mist-300);
+  --color-mist-400: var(--mist-400);
+  --color-mist-500: var(--mist-500);
+  --color-mint-200: var(--mint-200);
+  --color-mint-300: var(--mint-300);
+  --color-mint-400: var(--mint-400);
+  --color-peach-200: var(--peach-200);
+  --color-peach-300: var(--peach-300);
+  --color-peach-400: var(--peach-400);
+  --color-lilac-200: var(--lilac-200);
+  --color-lilac-300: var(--lilac-300);
+  --color-lilac-400: var(--lilac-400);
+  --color-amber-300: var(--amber-300);
 
   --font-sans:
-    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    "PingFang SC", "Microsoft YaHei", sans-serif;
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
 
   --radius-card: 1.5rem;
   --radius-panel: 2rem;

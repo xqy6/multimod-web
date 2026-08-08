@@ -56,7 +56,10 @@ export default function SharePage() {
             </div>
           ) : data.kind === "file" ? (
             <div className="text-center">
-              <FileText className="mx-auto h-12 w-12 text-lilac-300" aria-hidden="true" />
+              <FileText
+                className="mx-auto h-12 w-12 text-lilac-300"
+                aria-hidden="true"
+              />
               <h1 className="mt-5 text-2xl font-bold">{data.name}</h1>
               <p className="mt-2 text-sm text-mist-400">
                 {data.size ? `${Math.round(data.size / 1024)} KB` : "文件分享"}
@@ -85,8 +88,13 @@ export default function SharePage() {
                     key={folder.id}
                     className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3"
                   >
-                    <Folder className="h-4 w-4 text-mint-300" aria-hidden="true" />
-                    <span className="truncate text-sm text-mist-200">{folder.name}</span>
+                    <Folder
+                      className="h-4 w-4 text-mint-300"
+                      aria-hidden="true"
+                    />
+                    <span className="truncate text-sm text-mist-200">
+                      {folder.name}
+                    </span>
                   </div>
                 ))}
                 {data.files.map((file) => (
@@ -94,7 +102,10 @@ export default function SharePage() {
                     key={file.id}
                     className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3"
                   >
-                    <FileText className="h-4 w-4 text-lilac-300" aria-hidden="true" />
+                    <FileText
+                      className="h-4 w-4 text-lilac-300"
+                      aria-hidden="true"
+                    />
                     <span className="min-w-0 flex-1 truncate text-sm text-mist-200">
                       {file.name}
                     </span>

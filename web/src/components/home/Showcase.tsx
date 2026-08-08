@@ -46,7 +46,10 @@ export function Showcase() {
       : cases.filter((item) => item.category === activeCategory);
 
   return (
-    <section id="showcase" className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+    <section
+      id="showcase"
+      className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32"
+    >
       <SectionHeading
         eyebrow="案例展示"
         title="从想法到上线的完整路径"

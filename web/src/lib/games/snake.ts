@@ -16,11 +16,7 @@ export interface SnakeState {
   gameOver: boolean;
 }
 
-function spawnFood(
-  width: number,
-  height: number,
-  snake: Point[],
-): Point {
+function spawnFood(width: number, height: number, snake: Point[]): Point {
   const occupied = new Set(snake.map((point) => `${point.x},${point.y}`));
   const empty: Point[] = [];
   for (let y = 0; y < height; y += 1) {
@@ -31,10 +27,7 @@ function spawnFood(
   return empty[Math.floor(Math.random() * empty.length)] ?? { x: 0, y: 0 };
 }
 
-export function createSnake(
-  width = 20,
-  height = 20,
-): SnakeState {
+export function createSnake(width = 20, height = 20): SnakeState {
   const snake = [
     { x: Math.floor(width / 2), y: Math.floor(height / 2) },
     { x: Math.floor(width / 2) - 1, y: Math.floor(height / 2) },
@@ -88,11 +81,12 @@ export function stepSnake(state: SnakeState): SnakeState {
     return { ...state, gameOver: true };
   }
 
-  const willEat =
-    nextHead.x === state.food.x && nextHead.y === state.food.y;
+  const willEat = nextHead.x === state.food.x && nextHead.y === state.food.y;
   const bodyToCheck = willEat ? state.snake : state.snake.slice(0, -1);
   if (
-    bodyToCheck.some((point) => point.x === nextHead.x && point.y === nextHead.y)
+    bodyToCheck.some(
+      (point) => point.x === nextHead.x && point.y === nextHead.y,
+    )
   ) {
     return { ...state, gameOver: true };
   }
@@ -104,8 +98,6 @@ export function stepSnake(state: SnakeState): SnakeState {
     snake,
     direction,
     score: willEat ? state.score + 1 : state.score,
-    food: willEat
-      ? spawnFood(state.width, state.height, snake)
-      : state.food,
+    food: willEat ? spawnFood(state.width, state.height, snake) : state.food,
   };
 }

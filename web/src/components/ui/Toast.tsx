@@ -34,7 +34,9 @@ export function Toast() {
               }`}
             >
               <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-              <p className="min-w-0 flex-1 text-sm leading-6">{toast.message}</p>
+              <p className="min-w-0 flex-1 text-sm leading-6">
+                {toast.message}
+              </p>
               <button
                 type="button"
                 onClick={() => remove(toast.id)}

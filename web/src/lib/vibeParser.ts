@@ -1,17 +1,6 @@
-export interface ThemeConfig {
-  name: string;
-  background: string;
-  surface: string;
-  text: string;
-  muted: string;
-  primary: string;
-  secondary: string;
-  accent: string;
-  radius: number;
-  density: "compact" | "comfortable" | "airy";
-  motion: "subtle" | "medium" | "high";
-  font: string;
-}
+import type { ThemeConfig } from "@shared";
+
+export type { ThemeConfig };
 
 const presets: ThemeConfig[] = [
   {

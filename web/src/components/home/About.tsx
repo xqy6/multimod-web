@@ -12,7 +12,10 @@ const stats = [
 
 export function About() {
   return (
-    <section id="about" className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+    <section
+      id="about"
+      className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32"
+    >
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <motion.div
           initial={{ opacity: 0, x: -24 }}

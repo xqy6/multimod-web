@@ -14,7 +14,7 @@ function dataUrlToBytes(dataUrl: string): Uint8Array {
 
 function safeFileName(name: string): string {
   const cleaned = name
-    .replace(/[^\w.\-]+/g, "-")
+    .replace(/[^\w.-]+/g, "-")
     .replace(/^[-_]+|[-_]+$/g, "")
     .slice(0, 60);
   return cleaned || `asset-${Date.now()}`;

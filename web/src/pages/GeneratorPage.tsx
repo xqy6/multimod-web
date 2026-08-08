@@ -24,11 +24,7 @@ import {
   listAssets,
   type Asset,
 } from "@/services/assets";
-import {
-  getProject,
-  updateProject,
-  type Project,
-} from "@/services/projects";
+import { getProject, updateProject, type Project } from "@/services/projects";
 import { useAuthStore } from "@/stores/auth";
 import { useToastStore } from "@/stores/toast";
 
@@ -69,9 +65,7 @@ export default function GeneratorPage() {
         setProject(loaded);
         setTitle(loaded.title);
         setVibe(loaded.vibe_prompt);
-        setModules(
-          loaded.modules.length > 0 ? loaded.modules : defaultModules,
-        );
+        setModules(loaded.modules.length > 0 ? loaded.modules : defaultModules);
         setAssets(assetResult.data ?? []);
         if (assetResult.error) setError(assetResult.error);
       },
@@ -98,7 +92,7 @@ export default function GeneratorPage() {
       }
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [project, projectId, title, vibe, modules]);
+  }, [project, projectId, pushToast, title, vibe, modules]);
 
   const config = useMemo(() => parseVibe(vibe), [vibe]);
 
@@ -134,7 +128,11 @@ export default function GeneratorPage() {
   const handleImageUpload = async (file: File | undefined) => {
     if (!file || !projectId) return;
     setUploading(true);
-    const result = await addImageAsset(projectId, user?.id ?? "demo-user", file);
+    const result = await addImageAsset(
+      projectId,
+      user?.id ?? "demo-user",
+      file,
+    );
     setUploading(false);
     if (result.error) {
       setError(result.error);
@@ -201,7 +199,10 @@ export default function GeneratorPage() {
     return (
       <div className="rounded-panel border border-white/10 bg-white/[0.03] p-8 text-center">
         <p className="text-mist-200">{error ?? "项目不存在"}</p>
-        <Link to="/workspace" className="mt-4 inline-block text-sm text-mint-300">
+        <Link
+          to="/workspace"
+          className="mt-4 inline-block text-sm text-mint-300"
+        >
           返回工作台
         </Link>
       </div>
@@ -219,18 +220,13 @@ export default function GeneratorPage() {
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             返回工作台
           </Link>
-          <h1 className="mt-3 text-3xl font-bold sm:text-4xl">
-            网站生成器
-          </h1>
+          <h1 className="mt-3 text-3xl font-bold sm:text-4xl">网站生成器</h1>
         </div>
         <div className="flex items-center gap-3">
           <span className="hidden text-xs text-mist-500 sm:inline">
             {saving ? "保存中…" : savedAt ? `已保存 ${savedAt}` : ""}
           </span>
-          <Button
-            onClick={() => void handleExport()}
-            disabled={exporting}
-          >
+          <Button onClick={() => void handleExport()} disabled={exporting}>
             {exporting ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
@@ -270,9 +266,7 @@ export default function GeneratorPage() {
               />
             </label>
             <div className="mt-5 rounded-xl bg-white/5 p-4 text-xs leading-6 text-mist-300 ring-1 ring-white/10">
-              <span className="font-semibold text-mint-300">
-                当前风格：
-              </span>
+              <span className="font-semibold text-mint-300">当前风格：</span>
               {describeVibe(vibe)}
             </div>
           </section>
@@ -302,7 +296,10 @@ export default function GeneratorPage() {
                         {module.name}
                       </span>
                       {active ? (
-                        <Check className="h-4 w-4 text-mint-300" aria-hidden="true" />
+                        <Check
+                          className="h-4 w-4 text-mint-300"
+                          aria-hidden="true"
+                        />
                       ) : null}
                     </span>
                     <span className="mt-1.5 block text-xs leading-5 text-mist-400">
@@ -388,9 +385,7 @@ export default function GeneratorPage() {
                         {asset.name}
                       </p>
                       <p className="truncate text-xs text-mist-500">
-                        {asset.kind === "image"
-                          ? "图片素材"
-                          : asset.content}
+                        {asset.kind === "image" ? "图片素材" : asset.content}
                       </p>
                     </div>
                     <button

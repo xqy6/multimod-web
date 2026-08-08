@@ -13,8 +13,7 @@ export function SectionHeading({
   description,
   align = "center",
 }: SectionHeadingProps) {
-  const alignment =
-    align === "center" ? "mx-auto text-center" : "text-left";
+  const alignment = align === "center" ? "mx-auto text-center" : "text-left";
 
   return (
     <motion.div

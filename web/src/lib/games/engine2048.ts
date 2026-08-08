@@ -9,15 +9,16 @@ export function createGrid(): Grid2048 {
   );
 }
 
-function slide(line: number[]): { line: number[]; score: number; moved: boolean } {
+function slide(line: number[]): {
+  line: number[];
+  score: number;
+  moved: boolean;
+} {
   const values = line.filter((value) => value !== 0);
   const merged: number[] = [];
   let score = 0;
   for (let index = 0; index < values.length; index += 1) {
-    if (
-      index + 1 < values.length &&
-      values[index] === values[index + 1]
-    ) {
+    if (index + 1 < values.length && values[index] === values[index + 1]) {
       merged.push(values[index] * 2);
       score += values[index] * 2;
       index += 1;
@@ -97,8 +98,7 @@ export function isGameOver2048(grid: Grid2048): boolean {
       if (
         (column + 1 < GRID_SIZE &&
           grid[row][column] === grid[row][column + 1]) ||
-        (row + 1 < GRID_SIZE &&
-          grid[row][column] === grid[row + 1][column])
+        (row + 1 < GRID_SIZE && grid[row][column] === grid[row + 1][column])
       ) {
         return false;
       }

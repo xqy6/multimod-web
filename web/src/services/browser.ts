@@ -67,8 +67,7 @@ const restrictedHosts = [
 export function isRestrictedUrl(url: string): boolean {
   const host = hostName(url).toLowerCase();
   return restrictedHosts.some(
-    (restricted) =>
-      host === restricted || host.endsWith(`.${restricted}`),
+    (restricted) => host === restricted || host.endsWith(`.${restricted}`),
   );
 }
 
@@ -77,9 +76,7 @@ export function getBrowserHistory(): BrowserHistoryItem[] {
 }
 
 export function addBrowserHistory(url: string, title: string) {
-  const history = getBrowserHistory().filter(
-    (item) => item.url !== url,
-  );
+  const history = getBrowserHistory().filter((item) => item.url !== url);
   history.unshift({
     id: crypto.randomUUID(),
     url,

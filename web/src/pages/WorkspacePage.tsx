@@ -89,9 +89,7 @@ export default function WorkspacePage() {
       pushToast("error", result.error);
       return;
     }
-    setProjects((current) =>
-      current.filter((item) => item.id !== project.id),
-    );
+    setProjects((current) => current.filter((item) => item.id !== project.id));
     pushToast("success", "项目已删除");
   };
 
@@ -173,9 +171,7 @@ export default function WorkspacePage() {
             <select
               value={statusFilter}
               onChange={(event) =>
-                setStatusFilter(
-                  event.target.value as Project["status"] | "all",
-                )
+                setStatusFilter(event.target.value as Project["status"] | "all")
               }
               className="h-12 rounded-xl border border-white/10 bg-ink-900 px-3 text-sm text-mist-200 focus:border-mint-300/50 focus:outline-none"
               aria-label="按状态筛选"

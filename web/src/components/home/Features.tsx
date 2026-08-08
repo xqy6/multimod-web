@@ -41,7 +41,10 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="relative mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+    <section
+      id="features"
+      className="relative mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32"
+    >
       <SectionHeading
         eyebrow="功能板块"
         title="三大核心模块，一个平台"
@@ -63,7 +66,10 @@ export function Features() {
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mint-300/10 text-mint-300 ring-1 ring-mint-300/20">
                 <feature.icon className="h-5 w-5" aria-hidden="true" />
               </span>
-              <ArrowUpRight className="h-5 w-5 text-mist-500 transition-colors group-hover:text-mint-300" aria-hidden="true" />
+              <ArrowUpRight
+                className="h-5 w-5 text-mist-500 transition-colors group-hover:text-mint-300"
+                aria-hidden="true"
+              />
             </div>
             <h3 className="mt-6 text-xl font-bold text-mist-100">
               {feature.title}

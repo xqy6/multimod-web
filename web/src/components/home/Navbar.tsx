@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Sparkles, X } from "lucide-react";
+import { Menu, Moon, Sparkles, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { useThemeStore } from "@/stores/theme";
 
 const navLinks: { label: string; to?: string; href?: string }[] = [
   { label: "工作台", to: "/workspace" },
@@ -17,6 +18,8 @@ const navLinks: { label: string; to?: string; href?: string }[] = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -47,7 +50,7 @@ export function Navbar() {
         </a>
 
         <div className="hidden items-center gap-7 lg:flex">
-          {navLinks.map((link) => (
+          {navLinks.map((link) =>
             link.to ? (
               <Link
                 key={link.to}
@@ -64,8 +67,8 @@ export function Navbar() {
               >
                 {link.label}
               </a>
-            )
-          ))}
+            ),
+          )}
         </div>
 
         <div className="hidden lg:block">
@@ -73,6 +76,19 @@ export function Navbar() {
             开始创建
           </ButtonLink>
         </div>
+
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-mist-100 ring-1 ring-white/10"
+          aria-label={theme === "dark" ? "切换到亮色主题" : "切换到暗色主题"}
+        >
+          {theme === "dark" ? (
+            <Sun className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <Moon className="h-5 w-5" aria-hidden="true" />
+          )}
+        </button>
 
         <button
           type="button"
@@ -98,7 +114,7 @@ export function Navbar() {
             className="overflow-hidden border-b border-white/10 bg-ink-950/90 backdrop-blur-xl lg:hidden"
           >
             <div className="flex flex-col gap-1 px-5 py-4">
-              {navLinks.map((link) => (
+              {navLinks.map((link) =>
                 link.to ? (
                   <Link
                     key={link.to}
@@ -117,13 +133,9 @@ export function Navbar() {
                   >
                     {link.label}
                   </a>
-                )
-              ))}
-              <ButtonLink
-                href="/workspace"
-                variant="primary"
-                className="mt-2"
-              >
+                ),
+              )}
+              <ButtonLink href="/workspace" variant="primary" className="mt-2">
                 开始创建
               </ButtonLink>
             </div>

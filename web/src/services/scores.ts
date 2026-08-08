@@ -1,15 +1,10 @@
+import type { ScoreEntry } from "@shared";
+
 import { supabase } from "@/lib/supabase";
 
 export type GameId = "2048" | "snake" | "tetris";
 
-export interface ScoreEntry {
-  id: string;
-  game_id: GameId;
-  user_id: string;
-  score: number;
-  created_at: string;
-  display_name?: string;
-}
+export type { ScoreEntry };
 
 const DEMO_KEY = "multimod-demo-scores";
 
@@ -62,8 +57,8 @@ export async function getBestScore(
   userId: string,
 ): Promise<{ score: number; error: string | null }> {
   if (!supabase) {
-    const entry = readDemoScores()[gameId]
-      .filter((item) => item.user_id === userId)
+    const entry = readDemoScores()
+      [gameId].filter((item) => item.user_id === userId)
       .sort((a, b) => b.score - a.score)[0];
     return { score: entry?.score ?? 0, error: null };
   }
@@ -76,7 +71,7 @@ export async function getBestScore(
     .limit(1)
     .maybeSingle();
   return {
-    score: (data as { score: number } | null)?.score ?? 0,
+    score: data?.score ?? 0,
     error: error?.message ?? null,
   };
 }

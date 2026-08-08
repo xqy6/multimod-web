@@ -37,7 +37,8 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-5 max-w-sm text-sm leading-7 text-mist-400">
-              多功能 Web 平台骨架版本：AI 建站生成、小游戏中心、内置浏览器与实时聊天室将按模块逐步交付。
+              多功能 Web 平台骨架版本：AI
+              建站生成、小游戏中心、内置浏览器与实时聊天室将按模块逐步交付。
             </p>
           </div>
 

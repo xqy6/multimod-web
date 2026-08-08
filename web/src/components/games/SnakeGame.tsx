@@ -22,17 +22,13 @@ export function SnakeGame({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [state, setState] = useState<SnakeState>(() => createSnake());
   const [paused, setPaused] = useState(false);
-  const pausedRef = useRef(paused);
-  pausedRef.current = paused;
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setState((current) =>
-        pausedRef.current ? current : stepSnake(current),
-      );
+      setState((current) => (paused ? current : stepSnake(current)));
     }, 120);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [paused]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -75,7 +71,12 @@ export function SnakeGame({
     for (let y = 0; y < state.height; y += 1) {
       for (let x = 0; x < state.width; x += 1) {
         context.fillStyle = "rgba(255,255,255,0.025)";
-        context.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
+        context.fillRect(
+          x * CELL_SIZE,
+          y * CELL_SIZE,
+          CELL_SIZE - 1,
+          CELL_SIZE - 1,
+        );
       }
     }
 

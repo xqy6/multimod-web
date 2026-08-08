@@ -1,15 +1,8 @@
+import type { Project } from "@shared";
+
 import { supabase } from "@/lib/supabase";
 
-export interface Project {
-  id: string;
-  title: string;
-  vibe_prompt: string;
-  modules: string[];
-  style_params: Record<string, unknown> | null;
-  status: "draft" | "generating" | "preview" | "exported";
-  created_at: string;
-  updated_at: string;
-}
+export type { Project };
 
 export interface ProjectResult {
   data: Project[] | null;
@@ -43,7 +36,7 @@ export async function listProjects(): Promise<ProjectResult> {
     .from("projects")
     .select("*")
     .order("updated_at", { ascending: false });
-  return { data: data as Project[] | null, error: error?.message ?? null };
+  return { data, error: error?.message ?? null };
 }
 
 export async function createProject(input: {
@@ -79,7 +72,7 @@ export async function createProject(input: {
     })
     .select()
     .single();
-  return { data: data as Project | null, error: error?.message ?? null };
+  return { data, error: error?.message ?? null };
 }
 
 export async function renameProject(
@@ -89,9 +82,7 @@ export async function renameProject(
   if (!supabase) {
     const projects = readDemoProjects();
     const next = projects.map((project) =>
-      project.id === id
-        ? { ...project, title, updated_at: nowIso() }
-        : project,
+      project.id === id ? { ...project, title, updated_at: nowIso() } : project,
     );
     writeDemoProjects(next);
     return { error: null };
@@ -107,7 +98,9 @@ export async function deleteProject(
   id: string,
 ): Promise<{ error: string | null }> {
   if (!supabase) {
-    writeDemoProjects(readDemoProjects().filter((project) => project.id !== id));
+    writeDemoProjects(
+      readDemoProjects().filter((project) => project.id !== id),
+    );
     return { error: null };
   }
   const { error } = await supabase.from("projects").delete().eq("id", id);
@@ -126,7 +119,7 @@ export async function getProject(
     .select("*")
     .eq("id", id)
     .single();
-  return { data: data as Project | null, error: error?.message ?? null };
+  return { data, error: error?.message ?? null };
 }
 
 export async function updateProject(

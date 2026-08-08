@@ -77,7 +77,8 @@ export default function LoginPage() {
             <div className="text-center">
               <p className="text-lg font-bold">本地演示模式</p>
               <p className="mt-3 text-sm leading-6 text-mist-400">
-                尚未配置 Supabase。你可以先用演示账号体验工作台，后续填入环境变量后即可启用真实登录。
+                尚未配置
+                Supabase。你可以先用演示账号体验工作台，后续填入环境变量后即可启用真实登录。
               </p>
               <Button onClick={enterDemo} className="mt-6">
                 进入演示工作台
@@ -174,7 +175,10 @@ export default function LoginPage() {
 
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
                   ) : null}
                   {mode === "signin"
                     ? "登录"

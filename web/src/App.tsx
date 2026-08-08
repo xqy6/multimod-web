@@ -6,6 +6,7 @@ import { RequireAuth } from "@/app/guards/RequireAuth";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Toast } from "@/components/ui/Toast";
 import { useAuthStore } from "@/stores/auth";
+import { useThemeStore } from "@/stores/theme";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
@@ -29,10 +30,15 @@ function PageLoader() {
 
 export default function App() {
   const initialize = useAuthStore((state) => state.initialize);
+  const theme = useThemeStore((state) => state.theme);
 
   useEffect(() => {
     void initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   return (
     <ErrorBoundary>
@@ -40,88 +46,88 @@ export default function App() {
         <Toast />
         <Suspense fallback={<PageLoader />}>
           <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/share/:token" element={<SharePage />} />
-          <Route
-            path="/workspace"
-            element={
-              <RequireAuth>
-                <AppShell>
-                  <WorkspacePage />
-                </AppShell>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/generator/:projectId"
-            element={
-              <RequireAuth>
-                <AppShell>
-                  <GeneratorPage />
-                </AppShell>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/games"
-            element={
-              <RequireAuth>
-                <AppShell>
-                  <GamesPage />
-                </AppShell>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/browser"
-            element={
-              <RequireAuth>
-                <AppShell>
-                  <BrowserPage />
-                </AppShell>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/chat"
-            element={
-              <RequireAuth>
-                <AppShell>
-                  <ChatPage />
-                </AppShell>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/netdisk"
-            element={
-              <RequireAuth>
-                <AppShell>
-                  <NetdiskPage />
-                </AppShell>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <RequireAuth>
-                <AppShell>
-                  <SettingsPage />
-                </AppShell>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="*"
-            element={
-              <PlaceholderPage
-                title="页面不存在"
-                description="你访问的页面还没有创建。"
-              />
-            }
-          />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/share/:token" element={<SharePage />} />
+            <Route
+              path="/workspace"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <WorkspacePage />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/generator/:projectId"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <GeneratorPage />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/games"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <GamesPage />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/browser"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <BrowserPage />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <ChatPage />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/netdisk"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <NetdiskPage />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <SettingsPage />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="*"
+              element={
+                <PlaceholderPage
+                  title="页面不存在"
+                  description="你访问的页面还没有创建。"
+                />
+              }
+            />
           </Routes>
         </Suspense>
       </BrowserRouter>

@@ -1,34 +1,29 @@
+import type { ChatMember, ChatMessage, ChatRoom } from "@shared";
+
 import { supabase } from "@/lib/supabase";
 
-export interface ChatRoom {
-  id: string;
-  name: string;
-  slug: string | null;
-  created_by: string;
-  created_at: string;
-  member_count?: number;
-}
-
-export interface ChatMember {
-  room_id: string;
-  user_id: string;
-  display_name?: string;
-  role: "member" | "admin";
-  joined_at: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  room_id: string;
-  user_id: string;
-  body: string;
-  display_name?: string;
-  created_at: string;
-}
+export type { ChatMember, ChatMessage, ChatRoom };
 
 const ROOMS_KEY = "multimod-demo-rooms";
 const MEMBERS_KEY = "multimod-demo-members";
 const TYPING_KEY = "multimod-demo-typing";
+
+function lastReadKey(userId: string) {
+  return `multimod-demo-last-read-${userId}`;
+}
+
+function readLastRead(userId: string): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(lastReadKey(userId));
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLastRead(userId: string, value: Record<string, string>) {
+  localStorage.setItem(lastReadKey(userId), JSON.stringify(value));
+}
 
 function read<T>(key: string): T[] {
   try {
@@ -51,7 +46,9 @@ function demoDisplayName(userId: string): string {
   if (userId === "demo-user") return "演示用户";
   try {
     const raw = localStorage.getItem("multimod-demo-profile");
-    return raw ? (JSON.parse(raw) as { display_name?: string }).display_name ?? userId : userId;
+    return raw
+      ? ((JSON.parse(raw) as { display_name?: string }).display_name ?? userId)
+      : userId;
   } catch {
     return userId;
   }
@@ -87,11 +84,7 @@ function broadcastTyping(roomId: string) {
   }
 }
 
-export function setTyping(
-  roomId: string,
-  userId: string,
-  displayName: string,
-) {
+export function setTyping(roomId: string, userId: string, displayName: string) {
   if (supabase) return;
   const all = read<{
     room_id: string;
@@ -225,7 +218,7 @@ export async function createRoom(
     role: "admin",
   });
   return {
-    data: roomData as ChatRoom,
+    data: roomData,
     error: null,
   };
 }
@@ -236,7 +229,11 @@ export async function joinRoom(
 ): Promise<{ error: string | null }> {
   if (!supabase) {
     const members = read<ChatMember>(MEMBERS_KEY);
-    if (!members.some((member) => member.room_id === roomId && member.user_id === userId)) {
+    if (
+      !members.some(
+        (member) => member.room_id === roomId && member.user_id === userId,
+      )
+    ) {
       members.push({
         room_id: roomId,
         user_id: userId,
@@ -267,8 +264,7 @@ export async function leaveRoom(
     write(
       MEMBERS_KEY,
       read<ChatMember>(MEMBERS_KEY).filter(
-        (member) =>
-          !(member.room_id === roomId && member.user_id === userId),
+        (member) => !(member.room_id === roomId && member.user_id === userId),
       ),
     );
     broadcast(roomId);
@@ -365,7 +361,7 @@ export async function sendMessage(
     .insert({ room_id: roomId, user_id: userId, body })
     .select()
     .single();
-  return { data: data as ChatMessage | null, error: error?.message ?? null };
+  return { data, error: error?.message ?? null };
 }
 
 export async function deleteMessage(
@@ -475,4 +471,54 @@ export function subscribePresence(
   return () => {
     void client.removeChannel(channel);
   };
+}
+
+export async function markRoomRead(roomId: string, userId: string) {
+  if (!supabase) {
+    const lastRead = readLastRead(userId);
+    lastRead[roomId] = new Date().toISOString();
+    writeLastRead(userId, lastRead);
+    return;
+  }
+  await supabase
+    .from("room_members")
+    .update({ last_read_at: new Date().toISOString() })
+    .eq("room_id", roomId)
+    .eq("user_id", userId);
+}
+
+export async function getUnreadCounts(
+  userId: string,
+): Promise<Record<string, number>> {
+  if (!supabase) {
+    const lastRead = readLastRead(userId);
+    const rooms = read<ChatRoom>(ROOMS_KEY);
+    const counts: Record<string, number> = {};
+    for (const room of rooms) {
+      const messages = read<ChatMessage>(messagesKey(room.id));
+      const since = lastRead[room.id];
+      counts[room.id] = since
+        ? messages.filter((message) => message.created_at > since).length
+        : messages.length;
+    }
+    return counts;
+  }
+
+  const { data: members } = await supabase
+    .from("room_members")
+    .select("room_id, last_read_at")
+    .eq("user_id", userId);
+  const counts: Record<string, number> = {};
+  for (const member of members ?? []) {
+    let query = supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("room_id", member.room_id);
+    if (member.last_read_at) {
+      query = query.gt("created_at", member.last_read_at);
+    }
+    const { count } = await query;
+    counts[member.room_id] = count ?? 0;
+  }
+  return counts;
 }

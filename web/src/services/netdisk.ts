@@ -41,12 +41,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body;
 }
 
-export function listFolder(
-  path = "/",
-): Promise<NetdiskListing> {
-  return request(
-    `/api/folders?path=${encodeURIComponent(path)}`,
-  );
+export function listFolder(path = "/"): Promise<NetdiskListing> {
+  return request(`/api/folders?path=${encodeURIComponent(path)}`);
 }
 
 export function createFolder(parentPath: string, name: string) {
@@ -163,10 +159,7 @@ export function downloadUrl(path: string, name: string): string {
   return `${netdiskApiUrl}/api/files/download?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`;
 }
 
-export async function downloadFile(
-  path: string,
-  name: string,
-): Promise<Blob> {
+export async function downloadFile(path: string, name: string): Promise<Blob> {
   const response = await fetch(
     `${netdiskApiUrl}/api/files/download?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`,
   );

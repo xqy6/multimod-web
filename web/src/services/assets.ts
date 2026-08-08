@@ -1,16 +1,8 @@
+import type { Asset } from "@shared";
+
 import { supabase } from "@/lib/supabase";
 
-export interface Asset {
-  id: string;
-  project_id: string;
-  owner_id: string;
-  kind: "image" | "text";
-  name: string;
-  storage_path: string | null;
-  content: string | null;
-  dataUrl?: string;
-  created_at: string;
-}
+export type { Asset };
 
 interface AssetResult {
   data: Asset[] | null;
@@ -35,12 +27,10 @@ function writeDemoAssets(projectId: string, assets: Asset[]) {
 }
 
 function safeFileName(name: string): string {
-  return name.replace(/[^\w.\-]+/g, "-").slice(0, 80) || "asset";
+  return name.replace(/[^\w.-]+/g, "-").slice(0, 80) || "asset";
 }
 
-export async function listAssets(
-  projectId: string,
-): Promise<AssetResult> {
+export async function listAssets(projectId: string): Promise<AssetResult> {
   if (!supabase) {
     return { data: readDemoAssets(projectId), error: null };
   }
@@ -50,7 +40,7 @@ export async function listAssets(
     .select("*")
     .eq("project_id", projectId)
     .order("created_at", { ascending: true });
-  const assets = (data as Asset[] | null) ?? [];
+  const assets = data ?? [];
 
   const withUrls = await Promise.all(
     assets.map(async (asset) => {
@@ -58,7 +48,9 @@ export async function listAssets(
       const { data: signed } = await client.storage
         .from("project-assets")
         .createSignedUrl(asset.storage_path, 3600);
-      return signed?.signedUrl ? { ...asset, dataUrl: signed.signedUrl } : asset;
+      return signed?.signedUrl
+        ? { ...asset, dataUrl: signed.signedUrl }
+        : asset;
     }),
   );
   return { data: withUrls, error: error?.message ?? null };
@@ -97,7 +89,7 @@ export async function addTextAsset(
     })
     .select()
     .single();
-  return { data: data as Asset | null, error: error?.message ?? null };
+  return { data, error: error?.message ?? null };
 }
 
 export async function addImageAsset(
@@ -152,7 +144,7 @@ export async function addImageAsset(
     })
     .select()
     .single();
-  return { data: data as Asset | null, error: error?.message ?? null };
+  return { data, error: error?.message ?? null };
 }
 
 export async function deleteAsset(
@@ -170,9 +162,7 @@ export async function deleteAsset(
     (item) => item.id === assetId,
   );
   if (asset?.storage_path) {
-    await supabase.storage
-      .from("project-assets")
-      .remove([asset.storage_path]);
+    await supabase.storage.from("project-assets").remove([asset.storage_path]);
   }
   const { error } = await supabase.from("assets").delete().eq("id", assetId);
   return { error: error?.message ?? null };

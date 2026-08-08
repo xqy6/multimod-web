@@ -15,8 +15,7 @@ export default defineConfig({
       manifest: {
         name: "多功能 Web 平台",
         short_name: "MODULO",
-        description:
-          "AI 建站生成、小游戏中心、内置浏览器与实时聊天室",
+        description: "AI 建站生成、小游戏中心、内置浏览器与实时聊天室",
         theme_color: "#0a0b10",
         background_color: "#0a0b10",
         display: "standalone",
@@ -35,9 +34,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: [
-          "**/*.{js,css,html,png,jpg,jpeg,svg,webp,json,woff2}",
-        ],
+        globPatterns: ["**/*.{js,css,html,png,jpg,jpeg,svg,webp,json,woff2}"],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: "/index.html",
         cleanupOutdatedCaches: true,

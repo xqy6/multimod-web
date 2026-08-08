@@ -1,10 +1,11 @@
-import { LogOut, Sparkles, WifiOff } from "lucide-react";
+import { LogOut, Moon, Sparkles, Sun, WifiOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAuthStore } from "@/stores/auth";
+import { useThemeStore } from "@/stores/theme";
 
 const navItems = [
   { label: "工作台", to: "/workspace" },
@@ -19,6 +20,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
   const online = useOnlineStatus();
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
 
   return (
     <div className="min-h-screen bg-ink-950 text-mist-100">
@@ -60,6 +63,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               离线模式
             </span>
           ) : null}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "切换到亮色主题" : "切换到暗色主题"}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Moon className="h-4 w-4" aria-hidden="true" />
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="sm"

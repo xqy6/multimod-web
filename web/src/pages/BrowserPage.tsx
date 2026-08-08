@@ -13,7 +13,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { browserProxyUrl } from "@/lib/config";
@@ -54,8 +54,12 @@ export default function BrowserPage() {
   ]);
   const [activeId, setActiveId] = useState(tabs[0].id);
   const [input, setInput] = useState(defaultUrl);
-  const [history, setHistory] = useState<BrowserHistoryItem[]>([]);
-  const [bookmarks, setBookmarks] = useState<BrowserBookmark[]>([]);
+  const [history, setHistory] = useState<BrowserHistoryItem[]>(() =>
+    getBrowserHistory(),
+  );
+  const [bookmarks, setBookmarks] = useState<BrowserBookmark[]>(() =>
+    getBookmarks(),
+  );
   const [sidePanel, setSidePanel] = useState<"history" | "bookmarks">(
     "history",
   );
@@ -68,11 +72,6 @@ export default function BrowserPage() {
   const iframeSrc = browserProxyUrl
     ? `${browserProxyUrl}?url=${encodeURIComponent(activeTab.url)}`
     : activeTab.url;
-
-  useEffect(() => {
-    setHistory(getBrowserHistory());
-    setBookmarks(getBookmarks());
-  }, []);
 
   const activateTab = (id: string) => {
     const tab = tabs.find((item) => item.id === id);
@@ -351,7 +350,10 @@ export default function BrowserPage() {
           <div className="relative">
             {loading ? (
               <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 bg-ink-950/80 px-4 py-2 text-xs text-mist-300 backdrop-blur-md">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                <Loader2
+                  className="h-3.5 w-3.5 animate-spin"
+                  aria-hidden="true"
+                />
                 正在加载 {activeTab.url}
               </div>
             ) : null}
@@ -447,7 +449,10 @@ export default function BrowserPage() {
                       onClick={() => goTo(item.url)}
                       className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5 text-left"
                     >
-                      <Star className="h-4 w-4 shrink-0 fill-amber-300 text-amber-300" aria-hidden="true" />
+                      <Star
+                        className="h-4 w-4 shrink-0 fill-amber-300 text-amber-300"
+                        aria-hidden="true"
+                      />
                       <span className="min-w-0">
                         <span className="block truncate text-sm text-mist-200">
                           {item.title}

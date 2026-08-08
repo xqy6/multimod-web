@@ -70,7 +70,10 @@ export function ModulePicker() {
   };
 
   return (
-    <section id="modules" className="relative mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+    <section
+      id="modules"
+      className="relative mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32"
+    >
       <div
         className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
         aria-hidden="true"

@@ -40,7 +40,7 @@ export default function SettingsPage() {
           .createSignedUrl(path, 3600);
         if (signed?.signedUrl) setAvatarUrl(signed.signedUrl);
       });
-  }, [supabase, user]);
+  }, [user]);
 
   const handleAvatarUpload = async (file: File | undefined) => {
     if (!file || !user) return;
@@ -69,7 +69,10 @@ export default function SettingsPage() {
       pushToast("error", uploadError.message);
       return;
     }
-    await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
+    await supabase
+      .from("profiles")
+      .update({ avatar_url: path })
+      .eq("id", user.id);
     const { data: signed } = await supabase.storage
       .from("project-assets")
       .createSignedUrl(path, 3600);
@@ -200,7 +203,8 @@ export default function SettingsPage() {
 
       {user?.isDemo ? (
         <p className="mt-5 rounded-xl bg-amber-300/10 px-4 py-3 text-sm text-amber-200 ring-1 ring-amber-300/20">
-          当前为本地演示模式，资料仅保存在浏览器。配置 Supabase 后才会写入数据库。
+          当前为本地演示模式，资料仅保存在浏览器。配置 Supabase
+          后才会写入数据库。
         </p>
       ) : null}
     </div>

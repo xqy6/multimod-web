@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  changeSnakeDirection,
-  createSnake,
-  stepSnake,
-} from "./snake";
+import { changeSnakeDirection, createSnake, stepSnake } from "./snake";
 
 describe("snake engine", () => {
   it("moves forward and keeps direction", () => {

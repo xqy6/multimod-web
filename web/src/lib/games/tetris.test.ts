@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  createTetris,
-  moveTetris,
-  rotateTetris,
-  stepTetris,
-} from "./tetris";
+import { createTetris, moveTetris, rotateTetris, stepTetris } from "./tetris";
 
 describe("tetris engine", () => {
   it("creates a playable state", () => {

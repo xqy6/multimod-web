@@ -15,11 +15,13 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import {
   createRoom,
   deleteMessage,
+  getUnreadCounts,
   joinRoom,
   leaveRoom,
   listMembers,
   listMessages,
   listRooms,
+  markRoomRead,
   sendMessage,
   subscribeChatMessages,
   subscribePresence,
@@ -40,6 +42,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineMembers, setOnlineMembers] = useState<ChatMember[]>([]);
   const [typingUsers, setTypingUsers] = useState<ChatMember[]>([]);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +62,9 @@ export default function ChatPage() {
         setError(result.error);
       } else {
         setRooms(result.data);
+        void getUnreadCounts(userId).then((counts) => {
+          if (!cancelled) setUnreadCounts(counts);
+        });
         if (result.data.length > 0 && !activeRoomId) {
           setActiveRoomId(result.data[0].id);
         }
@@ -67,7 +73,7 @@ export default function ChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeRoomId]);
+  }, [activeRoomId, userId]);
 
   useEffect(() => {
     if (!activeRoomId) return;
@@ -82,6 +88,9 @@ export default function ChatPage() {
       if (joinResult.error) setError(joinResult.error);
       if (!memberResult.error) setMembers(memberResult.data);
       if (!messageResult.error) setMessages(messageResult.data);
+      void markRoomRead(activeRoomId, userId).then(() => {
+        setUnreadCounts((current) => ({ ...current, [activeRoomId]: 0 }));
+      });
     });
 
     const unsubscribeMessages = subscribeChatMessages(
@@ -89,6 +98,9 @@ export default function ChatPage() {
       (message) => {
         if (message) {
           setMessages((current) => [...current, message]);
+          void markRoomRead(activeRoomId, userId).then(() => {
+            setUnreadCounts((current) => ({ ...current, [activeRoomId]: 0 }));
+          });
         } else {
           void listMessages(activeRoomId).then((result) => {
             if (!result.error) setMessages(result.data);
@@ -149,6 +161,8 @@ export default function ChatPage() {
       return;
     }
     setBody("");
+    await markRoomRead(activeRoomId, userId);
+    setUnreadCounts((current) => ({ ...current, [activeRoomId]: 0 }));
   };
 
   const handleLeave = async () => {
@@ -177,9 +191,7 @@ export default function ChatPage() {
       setError(result.error);
       return;
     }
-    setMessages((current) =>
-      current.filter((item) => item.id !== message.id),
-    );
+    setMessages((current) => current.filter((item) => item.id !== message.id));
   };
 
   return (
@@ -237,7 +249,10 @@ export default function ChatPage() {
                       : "border-white/10 bg-white/[0.02] hover:border-white/20"
                   }`}
                 >
-                  <MessageSquare className="h-4 w-4 shrink-0 text-mint-300" aria-hidden="true" />
+                  <MessageSquare
+                    className="h-4 w-4 shrink-0 text-mint-300"
+                    aria-hidden="true"
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-mist-100">
                       {room.name}
@@ -247,6 +262,13 @@ export default function ChatPage() {
                       {room.member_count ?? 0} 位成员
                     </span>
                   </span>
+                  {unreadCounts[room.id] ? (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-mint-300 px-1.5 text-[10px] font-bold text-ink-950">
+                      {unreadCounts[room.id] > 99
+                        ? "99+"
+                        : unreadCounts[room.id]}
+                    </span>
+                  ) : null}
                 </button>
               ))
             )}
@@ -299,7 +321,10 @@ export default function ChatPage() {
                   messages.map((message) => {
                     const own = message.user_id === userId;
                     return (
-                      <div key={message.id} className="group mb-3 flex flex-col">
+                      <div
+                        key={message.id}
+                        className="group mb-3 flex flex-col"
+                      >
                         <div
                           className={`flex items-end gap-2 ${
                             own ? "justify-end" : "justify-start"
@@ -313,8 +338,7 @@ export default function ChatPage() {
                             }`}
                           >
                             <p className="text-xs font-semibold opacity-70">
-                              {message.display_name ||
-                                (own ? "你" : "用户")}
+                              {message.display_name || (own ? "你" : "用户")}
                             </p>
                             <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">
                               {message.body}
@@ -327,7 +351,10 @@ export default function ChatPage() {
                               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-mist-500 opacity-0 transition-opacity hover:bg-red-400/10 hover:text-red-200 group-hover:opacity-100"
                               aria-label="删除消息"
                             >
-                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              <Trash2
+                                className="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              />
                             </button>
                           ) : null}
                         </div>
@@ -371,7 +398,10 @@ export default function ChatPage() {
           ) : (
             <div className="flex flex-1 items-center justify-center p-8 text-center">
               <div>
-                <MessageSquare className="mx-auto h-8 w-8 text-mint-300" aria-hidden="true" />
+                <MessageSquare
+                  className="mx-auto h-8 w-8 text-mint-300"
+                  aria-hidden="true"
+                />
                 <h2 className="mt-4 text-lg font-bold text-mist-100">
                   选择或创建一个房间
                 </h2>

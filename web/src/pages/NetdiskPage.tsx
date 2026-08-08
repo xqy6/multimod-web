@@ -114,9 +114,11 @@ export default function NetdiskPage() {
   const [newFolderName, setNewFolderName] = useState("");
   const [uploads, setUploads] = useState<UploadTask[]>([]);
   const [selected, setSelected] = useState<Set<SelectionKey>>(new Set());
-  const [editing, setEditing] = useState<
-    { kind: "folder" | "file"; path: string; name: string } | null
-  >(null);
+  const [editing, setEditing] = useState<{
+    kind: "folder" | "file";
+    path: string;
+    name: string;
+  } | null>(null);
   const [editName, setEditName] = useState("");
   const [backendOk, setBackendOk] = useState<boolean | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -159,17 +161,16 @@ export default function NetdiskPage() {
     void load(path);
   }, [load, path]);
 
-  const segments = path.split("/").filter(Boolean);
-  const folders = listing?.folders ?? [];
-  const files = listing?.files ?? [];
+  const segments = useMemo(() => path.split("/").filter(Boolean), [path]);
+  const folders = useMemo(() => listing?.folders ?? [], [listing]);
+  const files = useMemo(() => listing?.files ?? [], [listing]);
   const filteredFolders = folders.filter((folder) =>
     folder.name.toLowerCase().includes(query.toLowerCase()),
   );
   const filteredFiles = files.filter((file) => {
-    const matchesQuery = file.name
-      .toLowerCase()
-      .includes(query.toLowerCase());
-    const matchesCategory = category === "all" || fileCategory(file) === category;
+    const matchesQuery = file.name.toLowerCase().includes(query.toLowerCase());
+    const matchesCategory =
+      category === "all" || fileCategory(file) === category;
     return matchesQuery && matchesCategory;
   });
 
@@ -228,7 +229,8 @@ export default function NetdiskPage() {
   };
 
   const handleDeleteFolder = async (folder: NetdiskFolder) => {
-    if (!window.confirm(`确认删除文件夹「${folder.name}」及其全部内容吗？`)) return;
+    if (!window.confirm(`确认删除文件夹「${folder.name}」及其全部内容吗？`))
+      return;
     try {
       await deleteFolder(folder.path);
       pushToast("success", "文件夹已删除");
@@ -275,13 +277,17 @@ export default function NetdiskPage() {
     await Promise.all(
       tasks.map(async (task, index) => {
         try {
-          await uploadFileWithProgress(path, filesToUpload[index], (percent) => {
-            setUploads((current) =>
-              current.map((item) =>
-                item.id === task.id ? { ...item, progress: percent } : item,
-              ),
-            );
-          });
+          await uploadFileWithProgress(
+            path,
+            filesToUpload[index],
+            (percent) => {
+              setUploads((current) =>
+                current.map((item) =>
+                  item.id === task.id ? { ...item, progress: percent } : item,
+                ),
+              );
+            },
+          );
           pushToast("success", `上传完成：${task.name}`);
         } catch (uploadError) {
           pushToast("error", (uploadError as Error).message);
@@ -478,114 +484,128 @@ export default function NetdiskPage() {
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
           className={`relative min-w-0 rounded-panel border bg-ink-900/40 transition-colors ${
-            dragging
-              ? "border-mint-300/60 bg-mint-300/5"
-              : "border-white/10"
+            dragging ? "border-mint-300/60 bg-mint-300/5" : "border-white/10"
           }`}
         >
           {mode === "files" ? (
-          <div className="flex flex-col gap-3 border-b border-white/10 p-4">
-            <nav className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm">
-              <button
-                type="button"
-                onClick={() => navigateTo("/")}
-                className="flex shrink-0 items-center gap-1.5 text-mist-300 hover:text-mist-100"
-              >
-                <HardDrive className="h-4 w-4" aria-hidden="true" />
-                根目录
-              </button>
-              {segments.map((segment, index) => (
-                <span key={segment} className="flex min-w-0 items-center gap-1">
-                  <ChevronRight className="h-4 w-4 shrink-0 text-mist-500" aria-hidden="true" />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigateTo(`/${segments.slice(0, index + 1).join("/")}`)
-                    }
-                    className="truncate text-mist-300 hover:text-mist-100"
-                  >
-                    {segment}
-                  </button>
-                </span>
-              ))}
-            </nav>
-
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-              <div className="relative flex-1">
-                <Search
-                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-mist-500"
-                  aria-hidden="true"
-                />
-                <Input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="搜索当前文件夹"
-                  className="pl-10"
-                  aria-label="搜索当前文件夹"
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Input
-                  value={newFolderName}
-                  onChange={(event) => setNewFolderName(event.target.value)}
-                  placeholder="新文件夹名称"
-                  className="w-44"
-                  aria-label="新文件夹名称"
-                />
-                <Button onClick={() => void handleCreateFolder()} disabled={!newFolderName.trim()}>
-                  <FolderPlus className="h-4 w-4" aria-hidden="true" />
-                  新建
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(event) => {
-                    const selectedFiles = Array.from(event.target.files ?? []);
-                    if (selectedFiles.length > 0) void uploadFiles(selectedFiles);
-                    event.target.value = "";
-                  }}
-                />
-                <Button
-                  variant="soft"
-                  onClick={() => fileInputRef.current?.click()}
+            <div className="flex flex-col gap-3 border-b border-white/10 p-4">
+              <nav className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm">
+                <button
+                  type="button"
+                  onClick={() => navigateTo("/")}
+                  className="flex shrink-0 items-center gap-1.5 text-mist-300 hover:text-mist-100"
                 >
-                  <Upload className="h-4 w-4" aria-hidden="true" />
-                  上传
-                </Button>
-                <Button variant="ghost" onClick={refresh} aria-label="刷新网盘">
-                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                </Button>
-                <div className="flex rounded-full bg-white/5 p-1 ring-1 ring-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setView("grid")}
-                    className={`rounded-full p-2 ${
-                      view === "grid"
-                        ? "bg-mint-300 text-ink-950"
-                        : "text-mist-400 hover:text-mist-100"
-                    }`}
-                    aria-label="网格视图"
+                  <HardDrive className="h-4 w-4" aria-hidden="true" />
+                  根目录
+                </button>
+                {segments.map((segment, index) => (
+                  <span
+                    key={segment}
+                    className="flex min-w-0 items-center gap-1"
                   >
-                    <Grid3X3 className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setView("list")}
-                    className={`rounded-full p-2 ${
-                      view === "list"
-                        ? "bg-mint-300 text-ink-950"
-                        : "text-mist-400 hover:text-mist-100"
-                    }`}
-                    aria-label="列表视图"
+                    <ChevronRight
+                      className="h-4 w-4 shrink-0 text-mist-500"
+                      aria-hidden="true"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigateTo(`/${segments.slice(0, index + 1).join("/")}`)
+                      }
+                      className="truncate text-mist-300 hover:text-mist-100"
+                    >
+                      {segment}
+                    </button>
+                  </span>
+                ))}
+              </nav>
+
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+                <div className="relative flex-1">
+                  <Search
+                    className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-mist-500"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="搜索当前文件夹"
+                    className="pl-10"
+                    aria-label="搜索当前文件夹"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    value={newFolderName}
+                    onChange={(event) => setNewFolderName(event.target.value)}
+                    placeholder="新文件夹名称"
+                    className="w-44"
+                    aria-label="新文件夹名称"
+                  />
+                  <Button
+                    onClick={() => void handleCreateFolder()}
+                    disabled={!newFolderName.trim()}
                   >
-                    <LayoutList className="h-4 w-4" aria-hidden="true" />
-                  </button>
+                    <FolderPlus className="h-4 w-4" aria-hidden="true" />
+                    新建
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => {
+                      const selectedFiles = Array.from(
+                        event.target.files ?? [],
+                      );
+                      if (selectedFiles.length > 0)
+                        void uploadFiles(selectedFiles);
+                      event.target.value = "";
+                    }}
+                  />
+                  <Button
+                    variant="soft"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4" aria-hidden="true" />
+                    上传
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={refresh}
+                    aria-label="刷新网盘"
+                  >
+                    <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                  <div className="flex rounded-full bg-white/5 p-1 ring-1 ring-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setView("grid")}
+                      className={`rounded-full p-2 ${
+                        view === "grid"
+                          ? "bg-mint-300 text-ink-950"
+                          : "text-mist-400 hover:text-mist-100"
+                      }`}
+                      aria-label="网格视图"
+                    >
+                      <Grid3X3 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setView("list")}
+                      className={`rounded-full p-2 ${
+                        view === "list"
+                          ? "bg-mint-300 text-ink-950"
+                          : "text-mist-400 hover:text-mist-100"
+                      }`}
+                      aria-label="列表视图"
+                    >
+                      <LayoutList className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
           ) : null}
 
           {mode === "trash" ? (
@@ -600,7 +620,10 @@ export default function NetdiskPage() {
                     void load(path);
                   }}
                 >
-                  <ChevronRight className="h-4 w-4 rotate-180" aria-hidden="true" />
+                  <ChevronRight
+                    className="h-4 w-4 rotate-180"
+                    aria-hidden="true"
+                  />
                   返回文件
                 </Button>
               </div>
@@ -614,16 +637,25 @@ export default function NetdiskPage() {
                       className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3"
                     >
                       {item.kind === "folder" ? (
-                        <Folder className="h-5 w-5 shrink-0 text-mint-300" aria-hidden="true" />
+                        <Folder
+                          className="h-5 w-5 shrink-0 text-mint-300"
+                          aria-hidden="true"
+                        />
                       ) : (
-                        <FileText className="h-5 w-5 shrink-0 text-lilac-300" aria-hidden="true" />
+                        <FileText
+                          className="h-5 w-5 shrink-0 text-lilac-300"
+                          aria-hidden="true"
+                        />
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-mist-100">
                           {item.name}
                         </p>
                         <p className="text-xs text-mist-500">
-                          {item.kind === "file" ? formatSize(item.size) : "文件夹"} · 删除于 {item.deletedAt}
+                          {item.kind === "file"
+                            ? formatSize(item.size)
+                            : "文件夹"}{" "}
+                          · 删除于 {item.deletedAt}
                         </p>
                       </div>
                       <button
@@ -651,324 +683,367 @@ export default function NetdiskPage() {
             </div>
           ) : (
             <>
-          {editing ? (
-            <div className="flex flex-col gap-2 border-b border-white/10 bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center">
-              <Input
-                value={editName}
-                onChange={(event) => setEditName(event.target.value)}
-                aria-label="修改名称"
-              />
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => void handleRename()}>
-                  <Check className="h-4 w-4" aria-hidden="true" />
-                  保存
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
-                  <X className="h-4 w-4" aria-hidden="true" />
-                  取消
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          {selected.size > 0 ? (
-            <div className="flex flex-col gap-2 border-b border-white/10 bg-mint-300/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-mint-200">已选 {selected.size} 项</p>
-              <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
-                  取消选择
-                </Button>
-                <Button size="sm" onClick={() => void handleDeleteSelected()}>
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  删除
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          {uploads.length > 0 ? (
-            <div className="space-y-2 border-b border-white/10 px-4 py-3">
-              {uploads.map((task) => (
-                <div key={task.id}>
-                  <div className="flex justify-between text-xs text-mist-300">
-                    <span className="truncate">{task.name}</span>
-                    <span>{task.progress}%</span>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-mint-300 transition-all"
-                      style={{ width: `${task.progress}%` }}
-                    />
+              {editing ? (
+                <div className="flex flex-col gap-2 border-b border-white/10 bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center">
+                  <Input
+                    value={editName}
+                    onChange={(event) => setEditName(event.target.value)}
+                    aria-label="修改名称"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => void handleRename()}>
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                      保存
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditing(null)}
+                    >
+                      <X className="h-4 w-4" aria-hidden="true" />
+                      取消
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : null}
+              ) : null}
 
-          {error ? (
-            <p className="m-4 rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200 ring-1 ring-red-400/20">
-              {error}
-            </p>
-          ) : null}
-
-          {loading ? (
-            <div className="flex items-center justify-center gap-3 py-24 text-mist-400">
-              <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-              <span className="text-sm">正在加载</span>
-            </div>
-          ) : filteredFolders.length + filteredFiles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <Folder className="h-10 w-10 text-mist-500" aria-hidden="true" />
-              <p className="mt-3 text-sm text-mist-400">
-                这个文件夹是空的，拖拽文件到这里即可上传
-              </p>
-            </div>
-          ) : view === "grid" ? (
-            <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-              {filteredFolders.map((folder) => (
-                <div
-                  key={folder.path}
-                  className="group rounded-card border border-white/10 bg-white/[0.02] p-4 transition-colors hover:border-white/20"
-                >
-                  <button
-                    type="button"
-                    onClick={() => navigateTo(folder.path)}
-                    className="flex w-full flex-col items-center gap-3"
-                  >
-                    <Folder className="h-12 w-12 text-mint-300" aria-hidden="true" />
-                    <span className="line-clamp-2 w-full break-all text-center text-sm font-medium text-mist-100">
-                      {folder.name}
-                    </span>
-                  </button>
-                  <div className="mt-3 flex justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => void openShare(folder.id, folder.name)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
-                      aria-label={`分享文件夹 ${folder.name}`}
+              {selected.size > 0 ? (
+                <div className="flex flex-col gap-2 border-b border-white/10 bg-mint-300/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-mint-200">
+                    已选 {selected.size} 项
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSelected(new Set())}
                     >
-                      <Share2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditing({ kind: "folder", path: folder.path, name: folder.name });
-                        setEditName(folder.name);
-                      }}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mist-100"
-                      aria-label={`重命名文件夹 ${folder.name}`}
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteFolder(folder)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
-                      aria-label={`删除文件夹 ${folder.name}`}
+                      取消选择
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => void handleDeleteSelected()}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
+                      删除
+                    </Button>
                   </div>
                 </div>
-              ))}
+              ) : null}
 
-              {filteredFiles.map((file) => (
-                <div
-                  key={file.path}
-                  className={`group rounded-card border p-4 transition-colors ${
-                    selected.has(`file:${file.name}`)
-                      ? "border-mint-300/50 bg-mint-300/10"
-                      : "border-white/10 bg-white/[0.02] hover:border-white/20"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleSelection(`file:${file.name}`)}
-                    className="flex w-full flex-col items-center gap-3"
-                  >
-                    <span className="text-lilac-300">
-                      <FileTypeIcon file={file} />
-                    </span>
-                    <span className="line-clamp-2 w-full break-all text-center text-sm font-medium text-mist-100">
-                      {file.name}
-                    </span>
-                    <span className="text-xs text-mist-500">
-                      {formatSize(file.size)}
-                    </span>
-                  </button>
-                  <div className="mt-2 flex justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => void openShare(file.id, file.name)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
-                      aria-label={`分享文件 ${file.name}`}
-                    >
-                      <Share2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDownload(file)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
-                      aria-label={`下载文件 ${file.name}`}
-                    >
-                      <Download className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditing({ kind: "file", path: file.path, name: file.name });
-                        setEditName(file.name);
-                      }}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mist-100"
-                      aria-label={`重命名文件 ${file.name}`}
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteFile(file)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
-                      aria-label={`删除文件 ${file.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {filteredFolders.map((folder) => (
-                <div
-                  key={folder.path}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02]"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleSelection(`folder:${folder.path}`)}
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
-                      selected.has(`folder:${folder.path}`)
-                        ? "border-mint-300 bg-mint-300 text-ink-950"
-                        : "border-white/20 text-transparent"
-                    }`}
-                    aria-label={`选择文件夹 ${folder.name}`}
-                  >
-                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigateTo(folder.path)}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                  >
-                    <Folder className="h-5 w-5 shrink-0 text-mint-300" aria-hidden="true" />
-                    <span className="truncate text-sm font-medium text-mist-100">
-                      {folder.name}
-                    </span>
-                  </button>
-                  <span className="hidden w-24 text-xs text-mist-500 sm:block">文件夹</span>
-                  <div className="flex shrink-0 gap-1">
-                    <button
-                      type="button"
-                      onClick={() => void openShare(folder.id, folder.name)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
-                      aria-label={`分享文件夹 ${folder.name}`}
-                    >
-                      <Share2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditing({ kind: "folder", path: folder.path, name: folder.name });
-                        setEditName(folder.name);
-                      }}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mist-100"
-                      aria-label={`重命名文件夹 ${folder.name}`}
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteFolder(folder)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
-                      aria-label={`删除文件夹 ${folder.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {filteredFiles.map((file) => (
-                <div
-                  key={file.path}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02]"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleSelection(`file:${file.name}`)}
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
-                      selected.has(`file:${file.name}`)
-                        ? "border-mint-300 bg-mint-300 text-ink-950"
-                        : "border-white/20 text-transparent"
-                    }`}
-                    aria-label={`选择文件 ${file.name}`}
-                  >
-                    <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className="shrink-0 text-lilac-300">
-                      <FileTypeIcon file={file} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-mist-100">
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-mist-500">
-                        {formatSize(file.size)}
-                      </p>
+              {uploads.length > 0 ? (
+                <div className="space-y-2 border-b border-white/10 px-4 py-3">
+                  {uploads.map((task) => (
+                    <div key={task.id}>
+                      <div className="flex justify-between text-xs text-mist-300">
+                        <span className="truncate">{task.name}</span>
+                        <span>{task.progress}%</span>
+                      </div>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-mint-300 transition-all"
+                          style={{ width: `${task.progress}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 gap-1">
-                    <button
-                      type="button"
-                      onClick={() => void openShare(file.id, file.name)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
-                      aria-label={`分享文件 ${file.name}`}
-                    >
-                      <Share2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDownload(file)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
-                      aria-label={`下载文件 ${file.name}`}
-                    >
-                      <Download className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditing({ kind: "file", path: file.path, name: file.name });
-                        setEditName(file.name);
-                      }}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mist-100"
-                      aria-label={`重命名文件 ${file.name}`}
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteFile(file)}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
-                      aria-label={`删除文件 ${file.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              ) : null}
+
+              {error ? (
+                <p className="m-4 rounded-xl bg-red-400/10 px-4 py-3 text-sm text-red-200 ring-1 ring-red-400/20">
+                  {error}
+                </p>
+              ) : null}
+
+              {loading ? (
+                <div className="flex items-center justify-center gap-3 py-24 text-mist-400">
+                  <Loader2
+                    className="h-5 w-5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm">正在加载</span>
+                </div>
+              ) : filteredFolders.length + filteredFiles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 text-center">
+                  <Folder
+                    className="h-10 w-10 text-mist-500"
+                    aria-hidden="true"
+                  />
+                  <p className="mt-3 text-sm text-mist-400">
+                    这个文件夹是空的，拖拽文件到这里即可上传
+                  </p>
+                </div>
+              ) : view === "grid" ? (
+                <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+                  {filteredFolders.map((folder) => (
+                    <div
+                      key={folder.path}
+                      className="group rounded-card border border-white/10 bg-white/[0.02] p-4 transition-colors hover:border-white/20"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => navigateTo(folder.path)}
+                        className="flex w-full flex-col items-center gap-3"
+                      >
+                        <Folder
+                          className="h-12 w-12 text-mint-300"
+                          aria-hidden="true"
+                        />
+                        <span className="line-clamp-2 w-full break-all text-center text-sm font-medium text-mist-100">
+                          {folder.name}
+                        </span>
+                      </button>
+                      <div className="mt-3 flex justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => void openShare(folder.id, folder.name)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`分享文件夹 ${folder.name}`}
+                        >
+                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing({
+                              kind: "folder",
+                              path: folder.path,
+                              name: folder.name,
+                            });
+                            setEditName(folder.name);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mist-100"
+                          aria-label={`重命名文件夹 ${folder.name}`}
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteFolder(folder)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
+                          aria-label={`删除文件夹 ${folder.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {filteredFiles.map((file) => (
+                    <div
+                      key={file.path}
+                      className={`group rounded-card border p-4 transition-colors ${
+                        selected.has(`file:${file.name}`)
+                          ? "border-mint-300/50 bg-mint-300/10"
+                          : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSelection(`file:${file.name}`)}
+                        className="flex w-full flex-col items-center gap-3"
+                      >
+                        <span className="text-lilac-300">
+                          <FileTypeIcon file={file} />
+                        </span>
+                        <span className="line-clamp-2 w-full break-all text-center text-sm font-medium text-mist-100">
+                          {file.name}
+                        </span>
+                        <span className="text-xs text-mist-500">
+                          {formatSize(file.size)}
+                        </span>
+                      </button>
+                      <div className="mt-2 flex justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => void openShare(file.id, file.name)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`分享文件 ${file.name}`}
+                        >
+                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDownload(file)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`下载文件 ${file.name}`}
+                        >
+                          <Download className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing({
+                              kind: "file",
+                              path: file.path,
+                              name: file.name,
+                            });
+                            setEditName(file.name);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mist-100"
+                          aria-label={`重命名文件 ${file.name}`}
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteFile(file)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
+                          aria-label={`删除文件 ${file.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {filteredFolders.map((folder) => (
+                    <div
+                      key={folder.path}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02]"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSelection(`folder:${folder.path}`)}
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                          selected.has(`folder:${folder.path}`)
+                            ? "border-mint-300 bg-mint-300 text-ink-950"
+                            : "border-white/20 text-transparent"
+                        }`}
+                        aria-label={`选择文件夹 ${folder.name}`}
+                      >
+                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigateTo(folder.path)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        <Folder
+                          className="h-5 w-5 shrink-0 text-mint-300"
+                          aria-hidden="true"
+                        />
+                        <span className="truncate text-sm font-medium text-mist-100">
+                          {folder.name}
+                        </span>
+                      </button>
+                      <span className="hidden w-24 text-xs text-mist-500 sm:block">
+                        文件夹
+                      </span>
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => void openShare(folder.id, folder.name)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`分享文件夹 ${folder.name}`}
+                        >
+                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing({
+                              kind: "folder",
+                              path: folder.path,
+                              name: folder.name,
+                            });
+                            setEditName(folder.name);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mist-100"
+                          aria-label={`重命名文件夹 ${folder.name}`}
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteFolder(folder)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
+                          aria-label={`删除文件夹 ${folder.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {filteredFiles.map((file) => (
+                    <div
+                      key={file.path}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02]"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSelection(`file:${file.name}`)}
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                          selected.has(`file:${file.name}`)
+                            ? "border-mint-300 bg-mint-300 text-ink-950"
+                            : "border-white/20 text-transparent"
+                        }`}
+                        aria-label={`选择文件 ${file.name}`}
+                      >
+                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <span className="shrink-0 text-lilac-300">
+                          <FileTypeIcon file={file} />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-mist-100">
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-mist-500">
+                            {formatSize(file.size)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => void openShare(file.id, file.name)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`分享文件 ${file.name}`}
+                        >
+                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDownload(file)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`下载文件 ${file.name}`}
+                        >
+                          <Download className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing({
+                              kind: "file",
+                              path: file.path,
+                              name: file.name,
+                            });
+                            setEditName(file.name);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mist-100"
+                          aria-label={`重命名文件 ${file.name}`}
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteFile(file)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
+                          aria-label={`删除文件 ${file.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </section>

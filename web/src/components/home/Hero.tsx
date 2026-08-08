@@ -72,8 +72,14 @@ export function Hero() {
         className="relative mx-auto grid w-full max-w-7xl items-center gap-14 px-5 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20 lg:px-8"
       >
         <div>
-          <motion.div variants={item} className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-xs font-medium text-mist-300 ring-1 ring-white/10 backdrop-blur-md">
-            <Sparkles className="h-3.5 w-3.5 text-mint-300" aria-hidden="true" />
+          <motion.div
+            variants={item}
+            className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-xs font-medium text-mist-300 ring-1 ring-white/10 backdrop-blur-md"
+          >
+            <Sparkles
+              className="h-3.5 w-3.5 text-mint-300"
+              aria-hidden="true"
+            />
             多功能 Web 平台 · AI 建站生成
           </motion.div>
 
@@ -95,7 +101,10 @@ export function Hero() {
             小游戏中心、内置浏览器、实时聊天室，按需组合，一次生成。
           </motion.p>
 
-          <motion.div variants={item} className="mt-9 flex flex-col gap-3 sm:flex-row">
+          <motion.div
+            variants={item}
+            className="mt-9 flex flex-col gap-3 sm:flex-row"
+          >
             <ButtonLink href="/workspace" variant="primary" size="lg">
               开始生成
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -125,10 +134,7 @@ export function Hero() {
           </motion.div>
         </div>
 
-        <motion.div
-          variants={item}
-          className="relative"
-        >
+        <motion.div variants={item} className="relative">
           <div className="absolute -inset-6 rounded-hero bg-gradient-to-br from-mint-300/10 via-transparent to-lilac-300/10 blur-2xl" />
           <div className="relative aspect-[4/3] overflow-hidden rounded-hero border border-white/10 bg-ink-900 shadow-soft">
             <video
