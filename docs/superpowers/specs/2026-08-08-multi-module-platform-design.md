@@ -51,8 +51,8 @@ D:\xqy的网页
 
 - 前端：React、Vite、TypeScript、React Router。
 - 状态：Zustand 管理客户端状态，服务数据通过 Supabase 客户端获取。
-- UI：CSS 变量设计令牌 + CSS Modules；图标使用 lucide-react。
-- 动效：品牌首页使用 CSS 关键帧与 Framer Motion；应用内部动效克制，尊重 `prefers-reduced-motion`。
+- UI：Tailwind CSS v4 + 设计令牌（CSS 变量）；图标使用 lucide-react。
+- 动效：品牌首页按 MotionSites 规范使用 Framer Motion；应用内部动效克制，尊重 `prefers-reduced-motion`。
 - 实时：Supabase Realtime 订阅房间消息与在线状态。
 - 存储：Supabase Storage 保存图片、视频、导出包。
 - 测试：Vitest + React Testing Library，关键流程用 Playwright。
@@ -125,8 +125,15 @@ D:\xqy的网页
 
 - 输入依赖：用户提供的 MotionSites 完整提示词、图片、视频、品牌名与 Logo。
 - 落地方式：将提示词解析为“结构 + 风格 + 动效 + 素材槽位”，转换为平台自有首页模板。
+- 技术栈：React + Tailwind CSS v4 + Framer Motion，按提示词要求不引入额外非必要依赖。
+- 设计系统：深色基底、低饱和度主色、大量留白、玻璃拟态 `backdrop-blur`、柔和的大圆角、现代无衬线字体、宽松间距。
+- 动效规则：滚动进入视口时淡入加轻微位移；hover 使用缩放、光晕、透明度变化；页面平滑入场；背景支持视频或渐变流体且低透明度；禁止过度花哨爆炸动画。
+- 页面结构：玻璃态 Navbar（滚动变化）、Hero 大标题与双 CTA、功能、案例、卡片、关于、FAQ、页脚。
+- 素材占位：所有图片与视频位置只放占位符并写注释，标注需要的素材类型，不写死图片链接。
+- 响应式：PC / 平板 / 手机自适应，移动端导航切换为汉堡菜单。
 - 素材替换：提示词中的外链占位素材统一替换为 Supabase Storage 中的本地素材。
 - 适配要求：覆盖 360 / 768 / 1440 宽度，首屏无内容重叠，视频延迟加载，支持减弱动效。
+- 文案要求：MVP 只输出通用页面骨架，不填充业务文案，后续由用户替换。
 - 验收：桌面与移动端截图检查、素材可正常加载、无布局溢出、键盘可操作。
 
 ### M2 账号与工作台
