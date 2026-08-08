@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Bookmark,
+  ExternalLink,
   Globe,
   History,
   Loader2,
@@ -306,6 +307,18 @@ export default function BrowserPage() {
                 }`}
                 aria-hidden="true"
               />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                window.open(activeTab.url, "_blank", "noopener,noreferrer")
+              }
+              aria-label="在系统浏览器打开当前页"
+            >
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">外部打开</span>
             </Button>
           </form>
 
