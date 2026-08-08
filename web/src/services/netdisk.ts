@@ -20,7 +20,12 @@ export interface NetdiskListing {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${netdiskApiUrl}${path}`, init);
+  let response: Response;
+  try {
+    response = await fetch(`${netdiskApiUrl}${path}`, init);
+  } catch {
+    throw new Error(`无法连接网盘后端：${netdiskApiUrl}`);
+  }
   const text = await response.text();
   let body: T & { error?: string };
   try {

@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { netdiskApiUrl } from "@/lib/config";
 import {
   createFolder,
   deleteFile,
@@ -48,6 +49,21 @@ export default function NetdiskPage() {
     null,
   );
   const [editName, setEditName] = useState("");
+  const [backendOk, setBackendOk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${netdiskApiUrl}/api/health`)
+      .then((response) => {
+        if (!cancelled) setBackendOk(response.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setBackendOk(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const load = useCallback(
     async (targetPath: string) => {
@@ -163,6 +179,22 @@ export default function NetdiskPage() {
           <p className="mt-3 text-sm leading-6 text-mist-400">
             文件夹真实存储在服务器磁盘，文件由 Express + multer 上传。
           </p>
+          {backendOk !== null ? (
+            <span
+              className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ring-1 ${
+                backendOk
+                  ? "bg-mint-300/10 text-mint-200 ring-mint-300/25"
+                  : "bg-red-400/10 text-red-200 ring-red-400/25"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  backendOk ? "bg-mint-300" : "bg-red-300"
+                }`}
+              />
+              {backendOk ? "后端已连接" : "后端未连接"}
+            </span>
+          ) : null}
         </div>
         <Button
           variant="ghost"
