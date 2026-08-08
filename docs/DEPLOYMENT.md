@@ -44,6 +44,14 @@ VITE_SUPABASE_ANON_KEY=你的 anon key
 - Railway：连接仓库后选择 `server` 目录
 - Fly.io：`fly launch` 后设置启动命令
 
+使用 Railway CLI 时，建议给数据目录挂载持久化卷，避免容器重启丢文件：
+
+```bash
+cd server
+railway link -p multimod-netdisk -s <service-id>
+railway volume add -m /app/data
+```
+
 后端环境变量：
 
 ```text
