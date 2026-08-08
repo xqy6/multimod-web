@@ -1,8 +1,9 @@
-import { LogOut, Sparkles } from "lucide-react";
+import { LogOut, Sparkles, WifiOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useAuthStore } from "@/stores/auth";
 
 const navItems = [
@@ -16,6 +17,7 @@ const navItems = [
 export function AppShell({ children }: { children: ReactNode }) {
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
+  const online = useOnlineStatus();
 
   return (
     <div className="min-h-screen bg-ink-950 text-mist-100">
@@ -51,6 +53,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="hidden shrink-0 text-xs text-mist-400 md:block">
             {user?.email}
           </div>
+          {!online ? (
+            <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-amber-300/10 px-3 py-1.5 text-xs font-medium text-amber-200 ring-1 ring-amber-300/20">
+              <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+              离线模式
+            </span>
+          ) : null}
           <Button
             variant="ghost"
             size="sm"
