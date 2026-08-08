@@ -9,6 +9,7 @@ import {
 import { useRef, useState } from "react";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { assetUrl } from "@/lib/assets";
 
 const container = {
   hidden: {},
@@ -140,8 +141,8 @@ export function Hero() {
             <video
               ref={videoRef}
               className="h-full w-full object-cover"
-              src="/assets/hero.mp4"
-              poster="/assets/hero-poster.jpg"
+              src={assetUrl("assets/hero.mp4")}
+              poster={assetUrl("assets/hero-poster.jpg")}
               preload="metadata"
               autoPlay
               muted
