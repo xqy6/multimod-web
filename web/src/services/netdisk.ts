@@ -1,12 +1,14 @@
 import { netdiskApiUrl } from "@/lib/config";
 
 export interface NetdiskFolder {
+  id: number;
   name: string;
   path: string;
   modifiedAt: string;
 }
 
 export interface NetdiskFile {
+  id: number;
   name: string;
   path: string;
   size: number;
@@ -179,4 +181,65 @@ export async function downloadFile(
     throw new Error(message);
   }
   return response.blob();
+}
+
+export interface TrashItem {
+  id: number;
+  name: string;
+  kind: "folder" | "file";
+  size: number;
+  deletedAt: string;
+}
+
+export function listTrash() {
+  return request<{ items: TrashItem[] }>("/api/trash");
+}
+
+export function restoreTrash(nodeId: number) {
+  return request(`/api/trash/restore`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nodeId }),
+  });
+}
+
+export function purgeTrash(nodeId: number) {
+  return request(`/api/trash?nodeId=${nodeId}`, { method: "DELETE" });
+}
+
+export interface ShareItem {
+  id: string;
+  node_id: number;
+  token: string;
+  expires_at: number | null;
+  created_at: string;
+}
+
+export function createShare(nodeId: number, expiresIn?: number) {
+  return request<{ id: string; token: string }>("/api/shares", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nodeId, expiresIn }),
+  });
+}
+
+export function listShares() {
+  return request<{ items: ShareItem[] }>("/api/shares");
+}
+
+export function deleteShare(id: string) {
+  return request(`/api/shares/${id}`, { method: "DELETE" });
+}
+
+export function getShare(token: string) {
+  return request<{
+    name: string;
+    kind: "folder" | "file";
+    size?: number;
+    downloadUrl?: string;
+  }>(`/api/shares/${token}`);
+}
+
+export function sharedDownloadUrl(token: string) {
+  return `${netdiskApiUrl}/api/shares/${token}/download`;
 }

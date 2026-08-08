@@ -8,8 +8,7 @@ import {
 } from "../repositories/shareRepository.js";
 import {
   getNodeForShare,
-  listFolder,
-  resolveParent,
+  listFolderByNode,
 } from "../services/nodeService.js";
 import { objectPath } from "../services/storageService.js";
 import { HttpError } from "../utils/httpError.js";
@@ -61,10 +60,7 @@ export function get(req, res, next) {
         downloadUrl: `/api/shares/${share.token}/download`,
       });
     }
-    const parentPath = node.parent_id
-      ? `/${node.name}`
-      : "/";
-    const listing = listFolder(share.user_id, parentPath);
+    const listing = listFolderByNode(share.user_id, node.id);
     res.json({ name: node.name, kind: node.kind, ...listing });
   } catch (error) {
     next(error);

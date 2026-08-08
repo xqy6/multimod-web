@@ -15,6 +15,7 @@ const GamesPage = lazy(() => import("@/pages/GamesPage"));
 const BrowserPage = lazy(() => import("@/pages/BrowserPage"));
 const ChatPage = lazy(() => import("@/pages/ChatPage"));
 const NetdiskPage = lazy(() => import("@/pages/NetdiskPage"));
+const SharePage = lazy(() => import("@/pages/SharePage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const PlaceholderPage = lazy(() => import("@/pages/PlaceholderPage"));
 
@@ -41,6 +42,7 @@ export default function App() {
           <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/share/:token" element={<SharePage />} />
           <Route
             path="/workspace"
             element={

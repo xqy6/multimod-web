@@ -23,6 +23,7 @@ import {
 
 function toFolderDto(node, segments) {
   return {
+    id: node.id,
     name: node.name,
     path: joinApiPath(segments, node.name),
     modifiedAt: node.updated_at,
@@ -31,6 +32,7 @@ function toFolderDto(node, segments) {
 
 function toFileDto(node, segments) {
   return {
+    id: node.id,
     name: node.name,
     path: joinApiPath(segments, node.name),
     size: node.size,
@@ -170,6 +172,24 @@ export function getNodeForShare(userId, nodeId) {
     throw new HttpError(404, "文件不存在");
   }
   return node;
+}
+
+export function listFolderByNode(userId, nodeId) {
+  const node = findNodeById(userId, Number(nodeId));
+  if (!node || node.kind !== "folder" || node.is_deleted) {
+    throw new HttpError(404, "文件夹不存在");
+  }
+  const children = listChildren(userId, node.id);
+  const segments = [node.name];
+  return {
+    path: `/${node.name}`,
+    folders: children
+      .filter((child) => child.kind === "folder")
+      .map((child) => toFolderDto(child, segments)),
+    files: children
+      .filter((child) => child.kind === "file")
+      .map((child) => toFileDto(child, segments)),
+  };
 }
 
 export function newUploadId() {

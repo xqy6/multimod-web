@@ -1,6 +1,7 @@
 import {
   Check,
   ChevronRight,
+  Copy,
   Download,
   FileArchive,
   FileText,
@@ -14,7 +15,9 @@ import {
   Music,
   Pencil,
   RefreshCw,
+  RotateCcw,
   Search,
+  Share2,
   Trash2,
   Upload,
   Video,
@@ -34,16 +37,24 @@ import { Input } from "@/components/ui/Input";
 import { netdiskApiUrl } from "@/lib/config";
 import {
   createFolder,
+  createShare,
   deleteFile,
   deleteFolder,
+  deleteShare,
   downloadFile,
+  listShares,
+  listTrash,
   listFolder,
+  purgeTrash,
   renameFile,
   renameFolder,
+  restoreTrash,
   uploadFileWithProgress,
   type NetdiskFile,
   type NetdiskFolder,
   type NetdiskListing,
+  type ShareItem,
+  type TrashItem,
 } from "@/services/netdisk";
 import { useToastStore } from "@/stores/toast";
 
@@ -109,6 +120,14 @@ export default function NetdiskPage() {
   const [editName, setEditName] = useState("");
   const [backendOk, setBackendOk] = useState<boolean | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [mode, setMode] = useState<"files" | "trash">("files");
+  const [trashItems, setTrashItems] = useState<TrashItem[]>([]);
+  const [shareModal, setShareModal] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+  const [shareToken, setShareToken] = useState("");
+  const [shares, setShares] = useState<ShareItem[]>([]);
 
   const load = useCallback(async (targetPath: string) => {
     setLoading(true);
@@ -312,6 +331,71 @@ export default function NetdiskPage() {
     pushToast("success", "删除完成");
   };
 
+  const openTrash = async () => {
+    setMode("trash");
+    setSelected(new Set());
+    setEditing(null);
+    try {
+      const result = await listTrash();
+      setTrashItems(result.items);
+    } catch (trashError) {
+      pushToast("error", (trashError as Error).message);
+    }
+  };
+
+  const handleRestoreTrash = async (item: TrashItem) => {
+    try {
+      await restoreTrash(item.id);
+      pushToast("success", `已恢复：${item.name}`);
+      await openTrash();
+    } catch (restoreError) {
+      pushToast("error", (restoreError as Error).message);
+    }
+  };
+
+  const handlePurgeTrash = async (item: TrashItem) => {
+    if (!window.confirm(`确认彻底删除「${item.name}」吗？`)) return;
+    try {
+      await purgeTrash(item.id);
+      pushToast("success", `已彻底删除：${item.name}`);
+      await openTrash();
+    } catch (purgeError) {
+      pushToast("error", (purgeError as Error).message);
+    }
+  };
+
+  const openShare = async (id: number, name: string) => {
+    setShareModal({ id, name });
+    try {
+      const created = await createShare(id);
+      setShareToken(created.token);
+      const shareResult = await listShares();
+      setShares(shareResult.items);
+    } catch (shareError) {
+      pushToast("error", (shareError as Error).message);
+    }
+  };
+
+  const handleDeleteShare = async (id: string) => {
+    try {
+      await deleteShare(id);
+      const shareResult = await listShares();
+      setShares(shareResult.items);
+      pushToast("success", "分享已取消");
+    } catch (shareError) {
+      pushToast("error", (shareError as Error).message);
+    }
+  };
+
+  const shareLink = shareToken
+    ? `${window.location.origin}/share/${shareToken}`
+    : "";
+
+  const copyShareLink = async () => {
+    await navigator.clipboard.writeText(shareLink);
+    pushToast("success", "分享链接已复制");
+  };
+
   const sidebarItems: { id: Category; label: string; count: number }[] = [
     { id: "all", label: "全部文件", count: files.length },
     { id: "image", label: "图片", count: categoryCounts.image },
@@ -368,6 +452,21 @@ export default function NetdiskPage() {
                 <span className="text-xs text-mist-500">{item.count}</span>
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => void openTrash()}
+              className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm transition-colors ${
+                mode === "trash"
+                  ? "bg-mint-300/10 text-mint-200"
+                  : "text-mist-400 hover:bg-white/5 hover:text-mist-100"
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                回收站
+              </span>
+              <span className="text-xs text-mist-500">{trashItems.length}</span>
+            </button>
           </div>
         </aside>
 
@@ -384,6 +483,7 @@ export default function NetdiskPage() {
               : "border-white/10"
           }`}
         >
+          {mode === "files" ? (
           <div className="flex flex-col gap-3 border-b border-white/10 p-4">
             <nav className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm">
               <button
@@ -486,7 +586,71 @@ export default function NetdiskPage() {
               </div>
             </div>
           </div>
+          ) : null}
 
+          {mode === "trash" ? (
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-mist-100">回收站</h2>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setMode("files");
+                    void load(path);
+                  }}
+                >
+                  <ChevronRight className="h-4 w-4 rotate-180" aria-hidden="true" />
+                  返回文件
+                </Button>
+              </div>
+              {trashItems.length === 0 ? (
+                <p className="mt-6 text-sm text-mist-400">回收站是空的。</p>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  {trashItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3"
+                    >
+                      {item.kind === "folder" ? (
+                        <Folder className="h-5 w-5 shrink-0 text-mint-300" aria-hidden="true" />
+                      ) : (
+                        <FileText className="h-5 w-5 shrink-0 text-lilac-300" aria-hidden="true" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-mist-100">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-mist-500">
+                          {item.kind === "file" ? formatSize(item.size) : "文件夹"} · 删除于 {item.deletedAt}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleRestoreTrash(item)}
+                        className="flex h-9 items-center gap-1.5 rounded-full bg-white/5 px-3 text-xs font-medium text-mist-200 ring-1 ring-white/10 hover:text-mint-200"
+                        aria-label={`恢复 ${item.name}`}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                        恢复
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handlePurgeTrash(item)}
+                        className="flex h-9 items-center gap-1.5 rounded-full bg-red-400/10 px-3 text-xs font-medium text-red-200 ring-1 ring-red-400/20 hover:bg-red-400/20"
+                        aria-label={`彻底删除 ${item.name}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        彻底删除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
           {editing ? (
             <div className="flex flex-col gap-2 border-b border-white/10 bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center">
               <Input
@@ -579,6 +743,14 @@ export default function NetdiskPage() {
                   <div className="mt-3 flex justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       type="button"
+                      onClick={() => void openShare(folder.id, folder.name)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                      aria-label={`分享文件夹 ${folder.name}`}
+                    >
+                      <Share2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setEditing({ kind: "folder", path: folder.path, name: folder.name });
                         setEditName(folder.name);
@@ -625,6 +797,14 @@ export default function NetdiskPage() {
                     </span>
                   </button>
                   <div className="mt-2 flex justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => void openShare(file.id, file.name)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                      aria-label={`分享文件 ${file.name}`}
+                    >
+                      <Share2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => void handleDownload(file)}
@@ -689,6 +869,14 @@ export default function NetdiskPage() {
                   <div className="flex shrink-0 gap-1">
                     <button
                       type="button"
+                      onClick={() => void openShare(folder.id, folder.name)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                      aria-label={`分享文件夹 ${folder.name}`}
+                    >
+                      <Share2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setEditing({ kind: "folder", path: folder.path, name: folder.name });
                         setEditName(folder.name);
@@ -743,6 +931,14 @@ export default function NetdiskPage() {
                   <div className="flex shrink-0 gap-1">
                     <button
                       type="button"
+                      onClick={() => void openShare(file.id, file.name)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                      aria-label={`分享文件 ${file.name}`}
+                    >
+                      <Share2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => void handleDownload(file)}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
                       aria-label={`下载文件 ${file.name}`}
@@ -773,8 +969,76 @@ export default function NetdiskPage() {
               ))}
             </div>
           )}
+            </>
+          )}
         </section>
       </div>
+
+      {shareModal ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-panel border border-white/10 bg-ink-900 p-6 shadow-soft">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-mist-100">分享</h2>
+                <p className="mt-1 text-sm text-mist-400">{shareModal.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShareModal(null)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-mist-300 hover:text-mist-100"
+                aria-label="关闭分享窗口"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            {shareToken ? (
+              <div className="mt-5">
+                <p className="text-xs font-medium text-mist-400">分享链接</p>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    readOnly
+                    value={shareLink}
+                    className="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-mist-200 focus:outline-none"
+                  />
+                  <Button size="sm" onClick={() => void copyShareLink()}>
+                    <Copy className="h-4 w-4" aria-hidden="true" />
+                    复制
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mt-6">
+              <p className="text-xs font-medium text-mist-400">我的分享</p>
+              {shares.length === 0 ? (
+                <p className="mt-3 text-sm text-mist-500">暂无其他分享。</p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {shares.map((share) => (
+                    <div
+                      key={share.id}
+                      className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5"
+                    >
+                      <span className="truncate text-xs text-mist-300">
+                        {window.location.origin}/share/{share.token}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteShare(share.id)}
+                        className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
+                        aria-label={`取消分享 ${share.token}`}
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
