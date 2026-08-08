@@ -38,7 +38,7 @@ pnpm dev
 
 ## Node.js 网盘后端
 
-项目内包含一个独立的 Express + multer 网盘后端，在服务器本地磁盘生成真实层级文件夹：
+项目内包含一个独立的百度网盘式 Node.js 后端：SQLite 元数据、对象存储去重、分片上传、回收站与分层代码：
 
 ```bash
 cd server
@@ -52,7 +52,7 @@ pnpm start
 
 ```text
 web/            React + Vite + TypeScript 前端
-server/         Express + multer 网盘后端
+server/         百度网盘式后端（SQLite + 对象存储去重 + 分片上传 + 回收站）
 supabase/       SQL 迁移与 Supabase 说明
 docs/           设计文档、计划、部署文档
 .github/        CI 工作流

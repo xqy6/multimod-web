@@ -1,28 +1,13 @@
-import path from "node:path";
-
-import { STORAGE_ROOT } from "../config.js";
 import { HttpError } from "./httpError.js";
 
-export function normalizeRelative(input = "") {
+export function normalizeSegments(input = "") {
   const raw = String(input ?? "").replace(/\\/g, "/");
   const clean = raw.replace(/^\/+/, "").replace(/\/+$/, "");
   const parts = clean.split("/").filter(Boolean);
   if (parts.some((part) => part === "." || part === "..")) {
     throw new HttpError(400, "路径不合法，不能包含 . 或 ..");
   }
-  return parts.join("/");
-}
-
-export function resolveSafe(relativePath) {
-  const relative = normalizeRelative(relativePath);
-  const absolute = path.resolve(STORAGE_ROOT, relative);
-  if (
-    absolute !== STORAGE_ROOT &&
-    !absolute.startsWith(STORAGE_ROOT + path.sep)
-  ) {
-    throw new HttpError(400, "路径越界");
-  }
-  return { relative, absolute };
+  return parts;
 }
 
 export function validateName(name) {
@@ -39,14 +24,11 @@ export function validateName(name) {
   return name.trim();
 }
 
-export function joinApiPath(relative, name) {
-  return `/${relative ? `${relative}/${name}` : name}`;
+export function joinApiPath(segments, name) {
+  const all = [...segments, name];
+  return `/${all.join("/")}`;
 }
 
-export function sanitizeFileName(name) {
-  const clean = String(name)
-    .replace(/[/\\]/g, "-")
-    .replace(/[<>:"|?*]/g, "-")
-    .trim();
-  return clean || `file-${Date.now()}`;
+export function joinSegmentsPath(segments) {
+  return `/${segments.join("/")}`;
 }
