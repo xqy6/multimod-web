@@ -1,5 +1,12 @@
 import { motion } from "framer-motion";
-import { ArrowRight, MousePointerClick, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  MousePointerClick,
+  Sparkles,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { useRef, useState } from "react";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
 
@@ -20,6 +27,16 @@ const item = {
 };
 
 export function Hero() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [soundOn, setSoundOn] = useState(false);
+
+  const toggleSound = () => {
+    if (!videoRef.current) return;
+    const next = !soundOn;
+    videoRef.current.muted = !next;
+    setSoundOn(next);
+  };
+
   return (
     <section
       id="home"
@@ -115,6 +132,7 @@ export function Hero() {
           <div className="absolute -inset-6 rounded-hero bg-gradient-to-br from-mint-300/10 via-transparent to-lilac-300/10 blur-2xl" />
           <div className="relative aspect-[4/3] overflow-hidden rounded-hero border border-white/10 bg-ink-900 shadow-soft">
             <video
+              ref={videoRef}
               className="h-full w-full object-cover"
               src="/assets/hero.mp4"
               autoPlay
@@ -126,6 +144,19 @@ export function Hero() {
             <span className="absolute bottom-4 left-4 rounded-full bg-ink-950/70 px-3 py-1.5 text-xs font-medium text-mist-200 ring-1 ring-white/10 backdrop-blur-md">
               首页主视觉 · 品牌视频
             </span>
+            <button
+              type="button"
+              onClick={toggleSound}
+              className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-ink-950/70 text-mist-100 ring-1 ring-white/10 backdrop-blur-md transition-colors hover:bg-ink-900/80"
+              aria-label={soundOn ? "关闭声音" : "开启声音"}
+              aria-pressed={soundOn}
+            >
+              {soundOn ? (
+                <Volume2 className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <VolumeX className="h-4 w-4" aria-hidden="true" />
+              )}
+            </button>
           </div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
