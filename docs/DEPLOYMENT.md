@@ -34,7 +34,37 @@ VITE_SUPABASE_ANON_KEY=你的 anon key
 
 在 Vercel 项目 Settings > Domains 中添加域名，并按提示配置 DNS。
 
-## 4. 上线检查清单
+## 4. 部署网盘后端
+
+前端部署到 Vercel 后，`VITE_NETDISK_URL` 不能再指向本机 `localhost`。需要把 `server/` 部署到可公网访问的 Node 服务：
+
+推荐平台：
+
+- Render：Web Service，根目录选 `server`，启动命令 `pnpm start`
+- Railway：连接仓库后选择 `server` 目录
+- Fly.io：`fly launch` 后设置启动命令
+
+后端环境变量：
+
+```text
+PORT=4000
+DATA_DIR=./data
+MAX_FILE_SIZE_MB=500
+```
+
+部署完成后把公网地址填入前端环境变量：
+
+```text
+VITE_NETDISK_URL=https://你的后端域名
+```
+
+如果配置了浏览器代理，同时填入：
+
+```text
+VITE_PROXY_URL=https://你的worker域名
+```
+
+## 5. 上线检查清单
 
 - [ ] 首页视频可播放，图片全部加载
 - [ ] 登录、注册、魔法链接可用
@@ -43,10 +73,11 @@ VITE_SUPABASE_ANON_KEY=你的 anon key
 - [ ] 三款小游戏可玩，分数写入排行榜
 - [ ] 内置浏览器可打开站点，受限提示正常
 - [ ] 聊天室可多房间收发消息，在线状态正常
+- [ ] 网盘可上传/下载/回收站/分享，`VITE_NETDISK_URL` 指向公网后端
 - [ ] 移动端 390px 无横向滚动
 - [ ] 生产构建通过：`pnpm build`
-- [ ] CI 通过：`pnpm test && pnpm build`
+- [ ] CI 通过：`pnpm lint && pnpm test && pnpm build`
 
-## 5. 可选：内置浏览器代理
+## 6. 可选：内置浏览器代理
 
 如果希望内置浏览器打开百度等拒绝嵌入的站点，可以部署 `proxy/worker.js` 到 Cloudflare Workers，并在 Vercel 环境变量中添加 `VITE_PROXY_URL`。完整说明见 `proxy/README.md`。
