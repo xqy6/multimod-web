@@ -94,6 +94,39 @@ filesRouter.delete("/", async (req, res, next) => {
   }
 });
 
+// PUT /api/files/rename?path=/docs&name=a.txt  body: { newName: "b.txt" }
+filesRouter.put("/rename", async (req, res, next) => {
+  try {
+    const oldName = validateName(req.query.name);
+    const newName = validateName(req.body?.newName);
+    const { absolute, relative } = resolveSafe(req.query.path);
+    const source = path.join(absolute, oldName);
+    const target = path.join(absolute, newName);
+
+    try {
+      await fs.rename(source, target);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        throw new HttpError(404, "文件不存在");
+      }
+      if (error.code === "EEXIST") {
+        throw new HttpError(409, "同名文件已存在");
+      }
+      throw error;
+    }
+
+    res.json({
+      message: "重命名成功",
+      file: {
+        name: newName,
+        path: joinApiPath(relative, newName),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/files/download?path=/docs&name=test.txt
 filesRouter.get("/download", async (req, res, next) => {
   try {

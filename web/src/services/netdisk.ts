@@ -87,10 +87,73 @@ export function uploadFile(path: string, file: File) {
   });
 }
 
+export function uploadFileWithProgress(
+  path: string,
+  file: File,
+  onProgress: (percent: number) => void,
+): Promise<{
+  message: string;
+  file: {
+    name: string;
+    originalName: string;
+    path: string;
+    size: number;
+    modifiedAt: string;
+  };
+}> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("file", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open(
+      "POST",
+      `${netdiskApiUrl}/api/files/upload?path=${encodeURIComponent(path)}`,
+    );
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new Error("上传响应解析失败"));
+        }
+      } else {
+        let message = `上传失败：${xhr.status}`;
+        try {
+          const body = JSON.parse(xhr.responseText);
+          if (body?.error) message = body.error;
+        } catch {
+          // ignore parse errors
+        }
+        reject(new Error(message));
+      }
+    };
+    xhr.onerror = () => {
+      reject(new Error(`无法连接网盘后端：${netdiskApiUrl}`));
+    };
+    xhr.send(form);
+  });
+}
+
 export function deleteFile(path: string, name: string) {
   return request(
     `/api/files?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`,
     { method: "DELETE" },
+  );
+}
+
+export function renameFile(path: string, oldName: string, newName: string) {
+  return request(
+    `/api/files/rename?path=${encodeURIComponent(path)}&name=${encodeURIComponent(oldName)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newName }),
+    },
   );
 }
 
