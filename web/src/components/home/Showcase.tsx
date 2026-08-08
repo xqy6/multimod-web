@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { assetUrl } from "@/lib/assets";
 
 const categories = ["全部", "游戏", "工具", "聊天"] as const;
 
@@ -90,7 +91,7 @@ export function Showcase() {
             className="overflow-hidden rounded-panel border border-white/10 bg-white/[0.03]"
           >
             <img
-              src={item.image}
+              src={assetUrl(item.image)}
               alt={item.alt}
               loading="lazy"
               decoding="async"
