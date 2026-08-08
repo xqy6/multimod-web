@@ -35,6 +35,11 @@ async function main() {
   });
 
   app.use((error, _req, res, _next) => {
+    if (error.status || error.statusCode) {
+      return res
+        .status(error.status || error.statusCode)
+        .json({ error: error.message });
+    }
     if (error instanceof HttpError) {
       return res.status(error.status).json({ error: error.message });
     }

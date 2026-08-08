@@ -21,7 +21,7 @@ import {
   createFolder,
   deleteFile,
   deleteFolder,
-  downloadUrl,
+  downloadFile,
   listFolder,
   renameFolder,
   uploadFile,
@@ -120,6 +120,21 @@ export default function NetdiskPage() {
       await load(path);
     } catch (deleteError) {
       pushToast("error", (deleteError as Error).message);
+    }
+  };
+
+  const handleDownload = async (name: string) => {
+    try {
+      const blob = await downloadFile(path, name);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = name;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      pushToast("success", "下载开始");
+    } catch (downloadError) {
+      pushToast("error", (downloadError as Error).message);
     }
   };
 
@@ -327,13 +342,14 @@ export default function NetdiskPage() {
                   {formatSize(file.size)}
                 </span>
                 <div className="flex items-center gap-1">
-                  <a
-                    href={downloadUrl(path, file.name)}
+                  <button
+                    type="button"
+                    onClick={() => void handleDownload(file.name)}
                     className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
                     aria-label={`下载文件 ${file.name}`}
                   >
                     <Download className="h-4 w-4" aria-hidden="true" />
-                  </a>
+                  </button>
                   <button
                     type="button"
                     onClick={() => void handleDeleteFile(file.name)}

@@ -92,3 +92,23 @@ export function deleteFile(path: string, name: string) {
 export function downloadUrl(path: string, name: string): string {
   return `${netdiskApiUrl}/api/files/download?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`;
 }
+
+export async function downloadFile(
+  path: string,
+  name: string,
+): Promise<Blob> {
+  const response = await fetch(
+    `${netdiskApiUrl}/api/files/download?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`,
+  );
+  if (!response.ok) {
+    let message = `下载失败：${response.status}`;
+    try {
+      const body = await response.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(message);
+  }
+  return response.blob();
+}
