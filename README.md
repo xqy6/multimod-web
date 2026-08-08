@@ -35,10 +35,23 @@ pnpm dev
 
 完整上线步骤见 `docs/DEPLOYMENT.md`。
 
+## Node.js 网盘后端
+
+项目内包含一个独立的 Express + multer 网盘后端，在服务器本地磁盘生成真实层级文件夹：
+
+```bash
+cd server
+pnpm install
+pnpm start
+```
+
+默认运行在 `http://localhost:4000`，支持创建/删除/重命名/列出文件夹、上传/下载/删除文件。完整 API 见 `server/README.md`。
+
 ## 目录
 
 ```text
 web/            React + Vite + TypeScript 前端
+server/         Express + multer 网盘后端
 supabase/       SQL 迁移与 Supabase 说明
 docs/           设计文档、计划、部署文档
 .github/        CI 工作流
