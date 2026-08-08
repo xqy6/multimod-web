@@ -14,6 +14,7 @@ const GeneratorPage = lazy(() => import("@/pages/GeneratorPage"));
 const GamesPage = lazy(() => import("@/pages/GamesPage"));
 const BrowserPage = lazy(() => import("@/pages/BrowserPage"));
 const ChatPage = lazy(() => import("@/pages/ChatPage"));
+const NetdiskPage = lazy(() => import("@/pages/NetdiskPage"));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
 const PlaceholderPage = lazy(() => import("@/pages/PlaceholderPage"));
 
@@ -86,6 +87,16 @@ export default function App() {
               <RequireAuth>
                 <AppShell>
                   <ChatPage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/netdisk"
+            element={
+              <RequireAuth>
+                <AppShell>
+                  <NetdiskPage />
                 </AppShell>
               </RequireAuth>
             }

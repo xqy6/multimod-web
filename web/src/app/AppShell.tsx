@@ -11,6 +11,7 @@ const navItems = [
   { label: "游戏", to: "/games" },
   { label: "浏览器", to: "/browser" },
   { label: "聊天", to: "/chat" },
+  { label: "网盘", to: "/netdisk" },
   { label: "设置", to: "/settings" },
 ];
 

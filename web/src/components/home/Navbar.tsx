@@ -10,6 +10,7 @@ const navLinks: { label: string; to?: string; href?: string }[] = [
   { label: "游戏", to: "/games" },
   { label: "浏览器", to: "/browser" },
   { label: "聊天", to: "/chat" },
+  { label: "网盘", to: "/netdisk" },
   { label: "FAQ", href: "#faq" },
 ];
 
