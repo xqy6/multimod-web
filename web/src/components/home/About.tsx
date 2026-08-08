@@ -67,6 +67,8 @@ export function About() {
           <img
             src="/assets/about-cover.jpg"
             alt="二次元风格关于平台配图"
+            loading="lazy"
+            decoding="async"
             className="aspect-[4/3] w-full rounded-panel border border-white/10 object-cover shadow-soft"
           />
         </motion.div>

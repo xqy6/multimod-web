@@ -82,6 +82,8 @@ export function Features() {
               <img
                 src={feature.image}
                 alt={feature.alt}
+                loading="lazy"
+                decoding="async"
                 className="aspect-[4/3] w-full rounded-card border border-white/10 object-cover"
               />
             </div>

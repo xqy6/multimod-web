@@ -1,4 +1,6 @@
 import {
+  ArrowLeft,
+  ArrowRight,
   Bookmark,
   Globe,
   History,
@@ -33,13 +35,21 @@ interface Tab {
   id: string;
   url: string;
   title: string;
+  history: string[];
+  index: number;
 }
 
 const defaultUrl = "https://www.baidu.com";
 
 export default function BrowserPage() {
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: crypto.randomUUID(), url: defaultUrl, title: "百度" },
+    {
+      id: crypto.randomUUID(),
+      url: defaultUrl,
+      title: "百度",
+      history: [defaultUrl],
+      index: 0,
+    },
   ]);
   const [activeId, setActiveId] = useState(tabs[0].id);
   const [input, setInput] = useState(defaultUrl);
@@ -77,7 +87,15 @@ export default function BrowserPage() {
     const title = hostName(url);
     setTabs((current) =>
       current.map((tab) =>
-        tab.id === activeId ? { ...tab, url, title } : tab,
+        tab.id === activeId
+          ? {
+              ...tab,
+              url,
+              title,
+              history: [...tab.history.slice(0, tab.index + 1), url],
+              index: tab.history.slice(0, tab.index + 1).length,
+            }
+          : tab,
       ),
     );
     setInput(url);
@@ -97,6 +115,8 @@ export default function BrowserPage() {
       id: crypto.randomUUID(),
       url: defaultUrl,
       title: "百度",
+      history: [defaultUrl],
+      index: 0,
     };
     setTabs((current) => [...current, tab]);
     setActiveId(tab.id);
@@ -113,6 +133,8 @@ export default function BrowserPage() {
           id: crypto.randomUUID(),
           url: defaultUrl,
           title: "百度",
+          history: [defaultUrl],
+          index: 0,
         };
         setActiveId(fallback.id);
         setInput(defaultUrl);
@@ -142,6 +164,23 @@ export default function BrowserPage() {
   const handleClearHistory = () => {
     clearBrowserHistory();
     setHistory([]);
+  };
+
+  const navigateHistory = (delta: number) => {
+    const current = tabs.find((tab) => tab.id === activeId) ?? tabs[0];
+    const index = current.index + delta;
+    if (index < 0 || index >= current.history.length) return;
+    const url = current.history[index];
+    setTabs((items) =>
+      items.map((tab) =>
+        tab.id === current.id
+          ? { ...tab, url, index, title: hostName(url) }
+          : tab,
+      ),
+    );
+    setInput(url);
+    setLoading(true);
+    setFrameKey((frame) => frame + 1);
   };
 
   return (
@@ -203,6 +242,26 @@ export default function BrowserPage() {
             onSubmit={submit}
             className="flex gap-2 border-b border-white/10 p-3"
           >
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => navigateHistory(-1)}
+              disabled={activeTab.index <= 0}
+              aria-label="后退"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => navigateHistory(1)}
+              disabled={activeTab.index >= activeTab.history.length - 1}
+              aria-label="前进"
+            >
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
             <div className="relative flex-1">
               <Search
                 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-mist-500"

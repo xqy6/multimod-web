@@ -14,7 +14,6 @@ import { Link, useParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { downloadBlob, exportSiteZip } from "@/lib/exportSite";
 import { renderSiteHtml, type SiteAsset } from "@/lib/generateSite";
 import { generatorModules } from "@/lib/generatorModules";
 import { describeVibe, parseVibe } from "@/lib/vibeParser";
@@ -31,12 +30,14 @@ import {
   type Project,
 } from "@/services/projects";
 import { useAuthStore } from "@/stores/auth";
+import { useToastStore } from "@/stores/toast";
 
 const defaultModules = ["hero", "games", "browser", "chat"];
 
 export default function GeneratorPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const user = useAuthStore((state) => state.user);
+  const pushToast = useToastStore((state) => state.push);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [project, setProject] = useState<Project | null>(null);
@@ -92,6 +93,8 @@ export default function GeneratorPage() {
       setSaving(false);
       if (!result.error) {
         setSavedAt(new Date().toLocaleTimeString("zh-CN"));
+      } else {
+        pushToast("error", result.error);
       }
     }, 700);
     return () => window.clearTimeout(timer);
@@ -135,6 +138,7 @@ export default function GeneratorPage() {
     setUploading(false);
     if (result.error) {
       setError(result.error);
+      pushToast("error", result.error);
       return;
     }
     if (result.data) setAssets((current) => [...current, result.data!]);
@@ -150,6 +154,7 @@ export default function GeneratorPage() {
     );
     if (result.error) {
       setError(result.error);
+      pushToast("error", result.error);
       return;
     }
     if (result.data) setAssets((current) => [...current, result.data!]);
@@ -162,6 +167,7 @@ export default function GeneratorPage() {
     const result = await deleteAsset(projectId, asset.id);
     if (result.error) {
       setError(result.error);
+      pushToast("error", result.error);
       return;
     }
     setAssets((current) => current.filter((item) => item.id !== asset.id));
@@ -170,6 +176,7 @@ export default function GeneratorPage() {
   const handleExport = async () => {
     if (!projectId) return;
     setExporting(true);
+    const { downloadBlob, exportSiteZip } = await import("@/lib/exportSite");
     const { blob, fileName } = await exportSiteZip({
       html: previewHtml,
       assets: siteAssets,
@@ -178,6 +185,7 @@ export default function GeneratorPage() {
     downloadBlob(blob, fileName);
     await updateProject(projectId, { status: "exported" });
     setExporting(false);
+    pushToast("success", "ZIP 导出完成");
   };
 
   if (loading) {

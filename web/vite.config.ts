@@ -36,11 +36,25 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: [
-          "**/*.{js,css,html,png,jpg,jpeg,svg,webp,mp4,json,woff2}",
+          "**/*.{js,css,html,png,jpg,jpeg,svg,webp,json,woff2}",
         ],
-        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: "/index.html",
         cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname === "/assets/hero.mp4",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "media",
+              expiration: {
+                maxEntries: 1,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],

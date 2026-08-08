@@ -89,6 +89,8 @@ export function Showcase() {
             <img
               src={item.image}
               alt={item.alt}
+              loading="lazy"
+              decoding="async"
               className="aspect-video w-full object-cover"
             />
             <div className="p-6">

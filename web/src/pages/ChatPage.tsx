@@ -4,6 +4,7 @@ import {
   MessageSquare,
   Plus,
   Send,
+  Trash2,
   Users,
 } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -13,6 +14,7 @@ import { Input } from "@/components/ui/Input";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
   createRoom,
+  deleteMessage,
   joinRoom,
   leaveRoom,
   listMembers,
@@ -21,6 +23,8 @@ import {
   sendMessage,
   subscribeChatMessages,
   subscribePresence,
+  setTyping,
+  subscribeTyping,
   type ChatMember,
   type ChatMessage,
   type ChatRoom,
@@ -35,6 +39,7 @@ export default function ChatPage() {
   const [members, setMembers] = useState<ChatMember[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineMembers, setOnlineMembers] = useState<ChatMember[]>([]);
+  const [typingUsers, setTypingUsers] = useState<ChatMember[]>([]);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,11 +102,15 @@ export default function ChatPage() {
       displayName,
       setOnlineMembers,
     );
+    const unsubscribeTyping = subscribeTyping(activeRoomId, (users) => {
+      setTypingUsers(users.filter((item) => item.user_id !== userId));
+    });
 
     return () => {
       cancelled = true;
       unsubscribeMessages();
       unsubscribePresence();
+      unsubscribeTyping();
     };
   }, [activeRoomId, displayName, userId]);
 
@@ -159,6 +168,18 @@ export default function ChatPage() {
     await refreshRooms();
     const memberResult = await listMembers(activeRoomId);
     if (!memberResult.error) setMembers(memberResult.data);
+  };
+
+  const handleDeleteMessage = async (message: ChatMessage) => {
+    if (!activeRoomId) return;
+    const result = await deleteMessage(activeRoomId, message.id);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setMessages((current) =>
+      current.filter((item) => item.id !== message.id),
+    );
   };
 
   return (
@@ -278,26 +299,37 @@ export default function ChatPage() {
                   messages.map((message) => {
                     const own = message.user_id === userId;
                     return (
-                      <div
-                        key={message.id}
-                        className={`mb-3 flex ${
-                          own ? "justify-end" : "justify-start"
-                        }`}
-                      >
+                      <div key={message.id} className="group mb-3 flex flex-col">
                         <div
-                          className={`max-w-[78%] rounded-2xl px-4 py-3 ${
-                            own
-                              ? "bg-mint-300 text-ink-950"
-                              : "bg-white/5 text-mist-100 ring-1 ring-white/10"
+                          className={`flex items-end gap-2 ${
+                            own ? "justify-end" : "justify-start"
                           }`}
                         >
-                          <p className="text-xs font-semibold opacity-70">
-                            {message.display_name ||
-                              (own ? "你" : "用户")}
-                          </p>
-                          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">
-                            {message.body}
-                          </p>
+                          <div
+                            className={`max-w-[78%] rounded-2xl px-4 py-3 ${
+                              own
+                                ? "bg-mint-300 text-ink-950"
+                                : "bg-white/5 text-mist-100 ring-1 ring-white/10"
+                            }`}
+                          >
+                            <p className="text-xs font-semibold opacity-70">
+                              {message.display_name ||
+                                (own ? "你" : "用户")}
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">
+                              {message.body}
+                            </p>
+                          </div>
+                          {own ? (
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteMessage(message)}
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-mist-500 opacity-0 transition-opacity hover:bg-red-400/10 hover:text-red-200 group-hover:opacity-100"
+                              aria-label="删除消息"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     );
@@ -306,13 +338,27 @@ export default function ChatPage() {
                 <div ref={messageEndRef} />
               </div>
 
+              {typingUsers.length > 0 ? (
+                <p className="border-t border-white/10 px-4 py-2 text-xs text-mist-500">
+                  {typingUsers
+                    .map((member) => member.display_name || "用户")
+                    .join("、")}{" "}
+                  正在输入…
+                </p>
+              ) : null}
+
               <form
                 onSubmit={handleSend}
                 className="flex gap-2 border-t border-white/10 p-4"
               >
                 <Input
                   value={body}
-                  onChange={(event) => setBody(event.target.value)}
+                  onChange={(event) => {
+                    setBody(event.target.value);
+                    if (activeRoomId) {
+                      setTyping(activeRoomId, userId, displayName);
+                    }
+                  }}
                   placeholder="输入消息，Enter 发送"
                   aria-label="聊天消息"
                 />

@@ -135,6 +135,8 @@ export function Hero() {
               ref={videoRef}
               className="h-full w-full object-cover"
               src="/assets/hero.mp4"
+              poster="/assets/hero-poster.jpg"
+              preload="metadata"
               autoPlay
               muted
               loop

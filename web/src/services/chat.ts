@@ -28,6 +28,7 @@ export interface ChatMessage {
 
 const ROOMS_KEY = "multimod-demo-rooms";
 const MEMBERS_KEY = "multimod-demo-members";
+const TYPING_KEY = "multimod-demo-typing";
 
 function read<T>(key: string): T[] {
   try {
@@ -69,6 +70,86 @@ function broadcast(roomId: string) {
       // ignore broadcast failures
     }
   }
+}
+
+function broadcastTyping(roomId: string) {
+  window.dispatchEvent(
+    new CustomEvent("multimod-chat-typing", { detail: { roomId } }),
+  );
+  if (typeof BroadcastChannel !== "undefined") {
+    try {
+      const channel = new BroadcastChannel("multimod-chat-typing");
+      channel.postMessage({ roomId });
+      channel.close();
+    } catch {
+      // ignore broadcast failures
+    }
+  }
+}
+
+export function setTyping(
+  roomId: string,
+  userId: string,
+  displayName: string,
+) {
+  if (supabase) return;
+  const all = read<{
+    room_id: string;
+    user_id: string;
+    display_name: string;
+    updated_at: string;
+  }>(TYPING_KEY);
+  const next = all.filter((item) => item.room_id !== roomId);
+  next.push({
+    room_id: roomId,
+    user_id: userId,
+    display_name: displayName,
+    updated_at: new Date().toISOString(),
+  });
+  write(TYPING_KEY, next);
+  broadcastTyping(roomId);
+}
+
+export function subscribeTyping(
+  roomId: string,
+  callback: (users: ChatMember[]) => void,
+): () => void {
+  if (supabase) return () => undefined;
+  const emit = () => {
+    const all = read<{
+      room_id: string;
+      user_id: string;
+      display_name: string;
+      updated_at: string;
+    }>(TYPING_KEY);
+    const users = all
+      .filter(
+        (item) =>
+          item.room_id === roomId &&
+          Date.now() - new Date(item.updated_at).getTime() < 3000,
+      )
+      .map((item) => ({
+        room_id: roomId,
+        user_id: item.user_id,
+        display_name: item.display_name,
+        role: "member" as const,
+        joined_at: item.updated_at,
+      }));
+    callback(users);
+  };
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === TYPING_KEY) emit();
+  };
+  const onCustom = (event: Event) => {
+    const detail = (event as CustomEvent<{ roomId: string }>).detail;
+    if (detail.roomId === roomId) emit();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener("multimod-chat-typing", onCustom);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener("multimod-chat-typing", onCustom);
+  };
 }
 
 export async function listRooms(): Promise<{
@@ -285,6 +366,26 @@ export async function sendMessage(
     .select()
     .single();
   return { data: data as ChatMessage | null, error: error?.message ?? null };
+}
+
+export async function deleteMessage(
+  roomId: string,
+  messageId: string,
+): Promise<{ error: string | null }> {
+  if (!supabase) {
+    const messages = read<ChatMessage>(messagesKey(roomId));
+    write(
+      messagesKey(roomId),
+      messages.filter((message) => message.id !== messageId),
+    );
+    broadcast(roomId);
+    return { error: null };
+  }
+  const { error } = await supabase
+    .from("messages")
+    .delete()
+    .eq("id", messageId);
+  return { error: error?.message ?? null };
 }
 
 export function subscribeChatMessages(

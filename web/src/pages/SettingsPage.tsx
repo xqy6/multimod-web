@@ -1,18 +1,82 @@
-import { Loader2, LogOut, Save } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { ImagePlus, Loader2, LogOut, Save, User } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { supabase } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/auth";
+import { useToastStore } from "@/stores/toast";
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
+  const pushToast = useToastStore((state) => state.push);
   const [displayName, setDisplayName] = useState(user?.display_name ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const currentUser = user;
+    if (!currentUser) return;
+    if (currentUser.isDemo || !supabase) {
+      setAvatarUrl(localStorage.getItem("multimod-demo-avatar") ?? "");
+      return;
+    }
+    const client = supabase;
+    void client
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", currentUser.id)
+      .single()
+      .then(async ({ data }) => {
+        const path = (data as { avatar_url?: string } | null)?.avatar_url;
+        if (!path) return;
+        const { data: signed } = await client.storage
+          .from("project-assets")
+          .createSignedUrl(path, 3600);
+        if (signed?.signedUrl) setAvatarUrl(signed.signedUrl);
+      });
+  }, [supabase, user]);
+
+  const handleAvatarUpload = async (file: File | undefined) => {
+    if (!file || !user) return;
+    setUploading(true);
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("读取头像失败"));
+      reader.readAsDataURL(file);
+    });
+
+    if (!supabase || user.isDemo) {
+      localStorage.setItem("multimod-demo-avatar", dataUrl);
+      setAvatarUrl(dataUrl);
+      setUploading(false);
+      pushToast("success", "头像已更新");
+      return;
+    }
+
+    const path = `${user.id}/avatar-${Date.now()}.png`;
+    const { error: uploadError } = await supabase.storage
+      .from("project-assets")
+      .upload(path, file, { upsert: true });
+    if (uploadError) {
+      setUploading(false);
+      pushToast("error", uploadError.message);
+      return;
+    }
+    await supabase.from("profiles").update({ avatar_url: path }).eq("id", user.id);
+    const { data: signed } = await supabase.storage
+      .from("project-assets")
+      .createSignedUrl(path, 3600);
+    setAvatarUrl(signed?.signedUrl ?? dataUrl);
+    setUploading(false);
+    pushToast("success", "头像已更新");
+  };
 
   const saveProfile = async (event: FormEvent) => {
     event.preventDefault();
@@ -38,6 +102,7 @@ export default function SettingsPage() {
 
     setSaving(false);
     setMessage("资料已保存");
+    pushToast("success", "资料已保存");
   };
 
   return (
@@ -51,6 +116,43 @@ export default function SettingsPage() {
         onSubmit={saveProfile}
         className="mt-8 rounded-panel border border-white/10 bg-white/[0.03] p-6"
       >
+        <div className="flex items-center gap-4">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt="用户头像"
+              className="h-20 w-20 rounded-full border border-white/10 object-cover"
+            />
+          ) : (
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-white/5 text-mist-400 ring-1 ring-white/10">
+              <User className="h-8 w-8" aria-hidden="true" />
+            </span>
+          )}
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(event) => {
+              void handleAvatarUpload(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={uploading}
+            onClick={() => avatarInputRef.current?.click()}
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <ImagePlus className="h-4 w-4" aria-hidden="true" />
+            )}
+            上传头像
+          </Button>
+        </div>
+
         <label className="block">
           <span className="mb-2 block text-xs font-medium text-mist-400">
             邮箱

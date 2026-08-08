@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   createRoom,
+  deleteMessage,
   leaveRoom,
   listMembers,
   listMessages,
@@ -36,6 +37,13 @@ describe("chat demo mode", () => {
 
     const messages = await listMessages(room.data!.id);
     expect(messages.data).toHaveLength(1);
+
+    const removedMessage = await deleteMessage(
+      room.data!.id,
+      message.data!.id,
+    );
+    expect(removedMessage.error).toBeNull();
+    expect((await listMessages(room.data!.id)).data).toHaveLength(0);
 
     const removed = await leaveRoom(room.data!.id, "demo-user");
     expect(removed.error).toBeNull();

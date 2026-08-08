@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
 import { RequireAuth } from "@/app/guards/RequireAuth";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { Toast } from "@/components/ui/Toast";
 import { useAuthStore } from "@/stores/auth";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
@@ -31,9 +33,11 @@ export default function App() {
   }, [initialize]);
 
   return (
-    <BrowserRouter>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Toast />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
@@ -105,8 +109,9 @@ export default function App() {
               />
             }
           />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
