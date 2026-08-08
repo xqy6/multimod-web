@@ -1,14 +1,15 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
 
-const navLinks = [
-  { label: "功能", href: "#features" },
-  { label: "案例", href: "#showcase" },
-  { label: "模块", href: "#modules" },
-  { label: "关于", href: "#about" },
+const navLinks: { label: string; to?: string; href?: string }[] = [
+  { label: "工作台", to: "/workspace" },
+  { label: "游戏", to: "/games" },
+  { label: "浏览器", to: "/browser" },
+  { label: "聊天", to: "/chat" },
   { label: "FAQ", href: "#faq" },
 ];
 
@@ -46,13 +47,23 @@ export function Navbar() {
 
         <div className="hidden items-center gap-7 lg:flex">
           {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm text-mist-300 transition-colors hover:text-mist-100"
-            >
-              {link.label}
-            </a>
+            link.to ? (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-sm text-mist-300 transition-colors hover:text-mist-100"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-sm text-mist-300 transition-colors hover:text-mist-100"
+              >
+                {link.label}
+              </a>
+            )
           ))}
         </div>
 
@@ -87,14 +98,25 @@ export function Navbar() {
           >
             <div className="flex flex-col gap-1 px-5 py-4">
               {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="rounded-xl px-3 py-3 text-sm text-mist-200 transition-colors hover:bg-white/5"
-                >
-                  {link.label}
-                </a>
+                link.to ? (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-xl px-3 py-3 text-sm text-mist-200 transition-colors hover:bg-white/5"
+                  >
+                    {link.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-xl px-3 py-3 text-sm text-mist-200 transition-colors hover:bg-white/5"
+                  >
+                    {link.label}
+                  </a>
+                )
               ))}
               <ButtonLink
                 href="/workspace"

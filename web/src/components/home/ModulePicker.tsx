@@ -81,6 +81,21 @@ export function ModulePicker() {
         description="点击卡片即可组合你的网站结构，预览会随选择实时更新。"
       />
 
+      <div className="mt-8 flex flex-wrap justify-center gap-2">
+        <ButtonLink href="/workspace" variant="primary" size="sm">
+          进入生成工作台
+        </ButtonLink>
+        <ButtonLink href="/games" variant="ghost" size="sm">
+          打开小游戏
+        </ButtonLink>
+        <ButtonLink href="/browser" variant="ghost" size="sm">
+          打开浏览器
+        </ButtonLink>
+        <ButtonLink href="/chat" variant="ghost" size="sm">
+          打开聊天室
+        </ButtonLink>
+      </div>
+
       <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {modules.map((module) => {
           const active = selected.has(module.id);
