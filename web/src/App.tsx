@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
 import { RequireAuth } from "@/app/guards/RequireAuth";
+import BrowserPage from "@/pages/BrowserPage";
 import GamesPage from "@/pages/GamesPage";
 import GeneratorPage from "@/pages/GeneratorPage";
 import HomePage from "@/pages/HomePage";
@@ -59,10 +60,7 @@ export default function App() {
           element={
             <RequireAuth>
               <AppShell>
-                <PlaceholderPage
-                  title="内置浏览器"
-                  description="多标签浏览、历史与书签将在后续迭代中开放。"
-                />
+                <BrowserPage />
               </AppShell>
             </RequireAuth>
           }
