@@ -3,6 +3,7 @@ import { ArrowRight, Layers, Rocket, ShieldCheck, Zap } from "lucide-react";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { assetUrl } from "@/lib/assets";
 
 const stats = [
   { icon: Layers, value: "4", label: "核心功能模块" },
@@ -68,7 +69,7 @@ export function About() {
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <img
-            src="/assets/about-cover.jpg"
+            src={assetUrl("assets/about-cover.jpg")}
             alt="二次元风格关于平台配图"
             loading="lazy"
             decoding="async"
