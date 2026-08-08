@@ -34,11 +34,11 @@ interface Tab {
   title: string;
 }
 
-const defaultUrl = "https://example.com";
+const defaultUrl = "https://www.baidu.com";
 
 export default function BrowserPage() {
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: crypto.randomUUID(), url: defaultUrl, title: "Example" },
+    { id: crypto.randomUUID(), url: defaultUrl, title: "百度" },
   ]);
   const [activeId, setActiveId] = useState(tabs[0].id);
   const [input, setInput] = useState(defaultUrl);
@@ -92,7 +92,7 @@ export default function BrowserPage() {
     const tab: Tab = {
       id: crypto.randomUUID(),
       url: defaultUrl,
-      title: "Example",
+      title: "百度",
     };
     setTabs((current) => [...current, tab]);
     setActiveId(tab.id);
@@ -108,7 +108,7 @@ export default function BrowserPage() {
         const fallback: Tab = {
           id: crypto.randomUUID(),
           url: defaultUrl,
-          title: "Example",
+          title: "百度",
         };
         setActiveId(fallback.id);
         setInput(defaultUrl);
