@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/app/AppShell";
 import { RequireAuth } from "@/app/guards/RequireAuth";
 import BrowserPage from "@/pages/BrowserPage";
+import ChatPage from "@/pages/ChatPage";
 import GamesPage from "@/pages/GamesPage";
 import GeneratorPage from "@/pages/GeneratorPage";
 import HomePage from "@/pages/HomePage";
@@ -70,10 +71,7 @@ export default function App() {
           element={
             <RequireAuth>
               <AppShell>
-                <PlaceholderPage
-                  title="聊天室"
-                  description="多房间实时聊天将在后续迭代中开放。"
-                />
+                <ChatPage />
               </AppShell>
             </RequireAuth>
           }
