@@ -18,10 +18,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@shared": ["../shared/index.ts"],
-      "@shared/*": ["../shared/*"]
+      "@shared": ["src/shared/index.ts"],
+      "@shared/*": ["src/shared/*"]
     },
     "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src", "../shared"]
+  "include": ["src"]
 }
