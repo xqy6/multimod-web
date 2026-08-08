@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { ArrowRight, Layers, Rocket, ShieldCheck, Zap } from "lucide-react";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 const stats = [
@@ -65,11 +64,10 @@ export function About() {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          <MediaPlaceholder
-            label="关于配图占位：团队工作场景或产品架构图"
-            hint="建议 4:3 工作场景照片，或模块化产品架构示意图。"
-            aspect="aspect-[4/3]"
-            className="shadow-soft"
+          <img
+            src="/assets/about-cover.jpg"
+            alt="二次元风格关于平台配图"
+            className="aspect-[4/3] w-full rounded-panel border border-white/10 object-cover shadow-soft"
           />
         </motion.div>
       </div>

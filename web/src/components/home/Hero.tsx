@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { ArrowRight, MousePointerClick, Sparkles } from "lucide-react";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 
 const container = {
   hidden: {},
@@ -114,19 +113,27 @@ export function Hero() {
           className="relative"
         >
           <div className="absolute -inset-6 rounded-hero bg-gradient-to-br from-mint-300/10 via-transparent to-lilac-300/10 blur-2xl" />
-          <MediaPlaceholder
-            label="首页主视觉占位：品牌产品大图"
-            hint="建议 16:9 高质感产品图、界面合成图，或循环播放的品牌氛围视频。"
-            aspect="aspect-[4/3]"
-            className="relative shadow-soft"
-          />
+          <div className="relative aspect-[4/3] overflow-hidden rounded-hero border border-white/10 bg-ink-900 shadow-soft">
+            <video
+              className="h-full w-full object-cover"
+              src="/assets/hero.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-label="首页主视觉品牌视频"
+            />
+            <span className="absolute bottom-4 left-4 rounded-full bg-ink-950/70 px-3 py-1.5 text-xs font-medium text-mist-200 ring-1 ring-white/10 backdrop-blur-md">
+              首页主视觉 · 品牌视频
+            </span>
+          </div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.7, ease: "easeOut" }}
             className="absolute -bottom-6 -left-5 hidden rounded-card border border-white/10 bg-ink-900/80 p-5 backdrop-blur-xl sm:block"
           >
-            <p className="text-xs text-mist-400">视频/背景素材占位</p>
+            <p className="text-xs text-mist-400">品牌视频素材</p>
             <p className="mt-1 text-sm font-semibold text-mist-100">
               循环播放 · 低透明度 · 不抢内容
             </p>

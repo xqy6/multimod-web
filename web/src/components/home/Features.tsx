@@ -6,7 +6,6 @@ import {
   MessageSquareText,
 } from "lucide-react";
 
-import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 const features = [
@@ -15,24 +14,24 @@ const features = [
     title: "休闲小游戏中心",
     description:
       "内置 2048、贪吃蛇、俄罗斯方块，支持键盘与触控，分数可进入排行榜。",
-    placeholder: "游戏截图占位：2048 或贪吃蛇界面",
-    hint: "建议 4:3 游戏实机截图或操作演示动图。",
+    image: "/assets/games-cover.jpg",
+    alt: "二次元风格游戏中心配图",
   },
   {
     icon: Globe2,
     title: "网页内置浏览器",
     description:
       "多标签页浏览，保存历史与书签；遇到拒绝嵌入的站点会给出友好提示。",
-    placeholder: "浏览器截图占位：带标签页的网页界面",
-    hint: "建议 16:10 浏览器窗口截图。",
+    image: "/assets/browser-cover.jpg",
+    alt: "内置浏览器界面图片",
   },
   {
     icon: MessageSquareText,
     title: "实时在线聊天室",
     description:
       "多房间实时消息、在线状态与消息持久化，无需自建服务器即可上线。",
-    placeholder: "聊天界面占位：房间列表与消息流",
-    hint: "建议 16:9 聊天室界面截图。",
+    image: "/assets/chat-cover.jpg",
+    alt: "二次元风格实时聊天室配图",
   },
 ];
 
@@ -69,10 +68,10 @@ export function Features() {
               {feature.description}
             </p>
             <div className="mt-6">
-              <MediaPlaceholder
-                label={feature.placeholder}
-                hint={feature.hint}
-                aspect="aspect-[4/3]"
+              <img
+                src={feature.image}
+                alt={feature.alt}
+                className="aspect-[4/3] w-full rounded-card border border-white/10 object-cover"
               />
             </div>
           </motion.article>

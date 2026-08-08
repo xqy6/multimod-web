@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 
-import { MediaPlaceholder } from "@/components/ui/MediaPlaceholder";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 
 const categories = ["全部", "游戏", "工具", "聊天"] as const;
@@ -11,29 +10,29 @@ const cases = [
     title: "游戏主题门户",
     category: "游戏",
     description: "以游戏中心为核心的站点，内置排行榜、个人最佳与成就入口。",
-    placeholder: "案例截图占位：游戏门户首页",
-    hint: "建议 16:9 完整首页截图。",
+    image: "/assets/showcase-game.jpg",
+    alt: "二次元风格游戏门户案例图",
   },
   {
     title: "团队工具台",
     category: "工具",
     description: "把浏览器、素材库与生成工作台组合成团队内部工具入口。",
-    placeholder: "案例截图占位：团队工具台界面",
-    hint: "建议 16:9 工作台截图。",
+    image: "/assets/showcase-tool.jpg",
+    alt: "二次元风格团队工具台案例图",
   },
   {
     title: "实时社区空间",
     category: "聊天",
     description: "围绕房间与实时消息搭建的轻量社区，支持在线状态与历史消息。",
-    placeholder: "案例截图占位：聊天社区界面",
-    hint: "建议 16:9 聊天室截图。",
+    image: "/assets/showcase-chat.jpg",
+    alt: "二次元风格聊天社区案例图",
   },
   {
     title: "品牌展示站",
     category: "工具",
     description: "用 vibe 描述快速生成品牌首页，图片与视频素材可随时替换。",
-    placeholder: "案例截图占位：品牌落地页",
-    hint: "建议 16:9 首屏截图。",
+    image: "/assets/showcase-brand.jpg",
+    alt: "二次元风格品牌落地页案例图",
   },
 ];
 
@@ -87,11 +86,10 @@ export function Showcase() {
             whileHover={{ y: -6 }}
             className="overflow-hidden rounded-panel border border-white/10 bg-white/[0.03]"
           >
-            <MediaPlaceholder
-              label={item.placeholder}
-              hint={item.hint}
-              aspect="aspect-video"
-              className="rounded-none border-0"
+            <img
+              src={item.image}
+              alt={item.alt}
+              className="aspect-video w-full object-cover"
             />
             <div className="p-6">
               <span className="inline-flex rounded-full bg-white/5 px-3 py-1 text-xs text-mint-300 ring-1 ring-white/10">
