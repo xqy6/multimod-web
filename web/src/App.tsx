@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
 import { RequireAuth } from "@/app/guards/RequireAuth";
@@ -28,6 +28,16 @@ function PageLoader() {
   );
 }
 
+function HomeRedirect() {
+  const user = useAuthStore((state) => state.user);
+  const loading = useAuthStore((state) => state.loading);
+
+  if (loading) {
+    return <PageLoader />;
+  }
+  return <Navigate to={user ? "/workspace" : "/login"} replace />;
+}
+
 export default function App() {
   const initialize = useAuthStore((state) => state.initialize);
   const theme = useThemeStore((state) => state.theme);
@@ -46,7 +56,8 @@ export default function App() {
         <Toast />
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<HomeRedirect />} />
+          <Route path="/home" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/share/:token" element={<SharePage />} />
             <Route

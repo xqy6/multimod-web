@@ -4,10 +4,13 @@ import type { Database } from "./database.types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseEnabled =
+  import.meta.env.MODE !== "test" &&
+  Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase: SupabaseClient<Database> | null =
-  supabaseUrl && supabaseAnonKey
-    ? createClient<Database>(supabaseUrl, supabaseAnonKey)
+  supabaseEnabled
+    ? createClient<Database>(supabaseUrl!, supabaseAnonKey!)
     : null;
 
 export const isSupabaseConfigured = supabase !== null;
