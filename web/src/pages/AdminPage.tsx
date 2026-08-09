@@ -12,7 +12,7 @@ import {
   Unlock,
   Users,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import {
@@ -58,6 +58,7 @@ export default function AdminPage() {
     new Set(),
   );
   const [messageRoomId, setMessageRoomId] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [backupLoading, setBackupLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +92,11 @@ export default function AdminPage() {
   useEffect(() => {
     if (user?.isAdmin) void load();
   }, [load, user?.isAdmin]);
+
+  useEffect(() => {
+    const container = messagesEndRef.current?.parentElement;
+    if (container) container.scrollTop = container.scrollHeight;
+  }, [messages.length, messageRoomId]);
 
   const handleDeleteUser = async (target: AdminUser) => {
     if (target.role === "admin") {
@@ -469,7 +475,7 @@ export default function AdminPage() {
             </div>
           </section>
 
-          <section className="mt-8 rounded-panel border border-white/10 bg-white/[0.02]">
+          <section className="mt-8 flex h-[560px] min-h-[420px] max-h-[70vh] flex-col overflow-hidden rounded-panel border border-white/10 bg-ink-900/40">
             <header className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="flex items-center gap-2 text-base font-bold">
                 <MessageSquare className="h-4 w-4 text-mint-300" aria-hidden="true" />
@@ -503,57 +509,51 @@ export default function AdminPage() {
                 </Button>
               </div>
             </header>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
-                <thead className="text-xs text-mist-500">
-                  <tr className="border-b border-white/5">
-                    <th className="w-10 px-4 py-3" />
-                    <th className="px-4 py-3 font-medium">用户</th>
-                    <th className="px-4 py-3 font-medium">消息</th>
-                    <th className="px-4 py-3 font-medium">房间</th>
-                    <th className="px-4 py-3 font-medium">时间</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {messages.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-sm text-mist-500">
-                        暂无聊天记录
-                      </td>
-                    </tr>
-                  ) : (
-                    messages.map((message) => {
-                      const selected = selectedMessageIds.has(message.id);
-                      const room = rooms.find((item) => item.id === message.room_id);
-                      return (
-                        <tr key={message.id}>
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={selected}
-                              onChange={() => toggleMessageSelection(message.id)}
-                              className="h-4 w-4 accent-mint-300"
-                              aria-label={`选择消息 ${message.id}`}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-mist-300">
-                            {message.display_name || message.email}
-                          </td>
-                          <td className="max-w-[280px] truncate px-4 py-3 text-mist-100">
-                            {message.body}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-mist-400">
-                            {room?.name ?? message.room_id}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-mist-500">
+
+            <div className="flex min-h-0 flex-1 touch-pan-y flex-col overflow-y-auto overscroll-contain p-4">
+              {messages.length === 0 ? (
+                <div className="flex flex-1 items-center justify-center text-center text-sm text-mist-500">
+                  暂无聊天记录
+                </div>
+              ) : (
+                messages.map((message) => {
+                  const selected = selectedMessageIds.has(message.id);
+                  const room = rooms.find((item) => item.id === message.room_id);
+                  return (
+                    <div
+                      key={message.id}
+                      className={`mb-4 flex items-start gap-3 rounded-2xl p-2 transition-colors ${
+                        selected ? "bg-mint-300/5 ring-1 ring-mint-300/20" : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleMessageSelection(message.id)}
+                        className="mt-3 h-4 w-4 shrink-0 accent-mint-300"
+                        aria-label={`选择消息 ${message.id}`}
+                      />
+                      <div className="max-w-[82%] min-w-0 rounded-2xl bg-white/5 px-4 py-3 ring-1 ring-white/10">
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                          <span className="text-xs font-semibold text-mint-200">
+                            {message.display_name || message.email || "用户"}
+                          </span>
+                          <span className="text-[10px] text-mist-500">
+                            {room?.name ?? "未知房间"}
+                          </span>
+                          <span className="text-[10px] text-mist-500">
                             {formatDate(message.created_at)}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                          </span>
+                        </div>
+                        <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-6 text-mist-100">
+                          {message.body}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
             </div>
           </section>
         </>
