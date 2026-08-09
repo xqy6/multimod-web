@@ -3,6 +3,7 @@ import {
   ChevronRight,
   Copy,
   Download,
+  Eye,
   FileArchive,
   FileText,
   Folder,
@@ -41,8 +42,8 @@ import {
   deleteFile,
   deleteFolder,
   deleteShare,
-  downloadFile,
   downloadFolder,
+  downloadUrl,
   listShares,
   listTrash,
   listFolder,
@@ -145,7 +146,13 @@ export default function NetdiskPage() {
     name: string;
   } | null>(null);
   const [shareToken, setShareToken] = useState("");
+  const [shareExpiryDays, setShareExpiryDays] = useState<number | null>(null);
   const [shares, setShares] = useState<ShareItem[]>([]);
+  const [preview, setPreview] = useState<{
+    name: string;
+    url: string;
+    kind: "image" | "video";
+  } | null>(null);
   const [offlineQueue, setOfflineQueue] = useState<OfflineUpload[]>([]);
   const [offlineQueueOpen, setOfflineQueueOpen] = useState(false);
   const [queueProgress, setQueueProgress] = useState<Record<string, number>>(
@@ -306,19 +313,31 @@ export default function NetdiskPage() {
     }
   };
 
-  const handleDownload = async (file: NetdiskFile) => {
-    try {
-      const blob = await downloadFile(path, file.name);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = file.name;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      pushToast("success", "下载开始");
-    } catch (downloadError) {
-      pushToast("error", (downloadError as Error).message);
+  const handleDownload = (file: NetdiskFile) => {
+    const anchor = document.createElement("a");
+    anchor.href = downloadUrl(path, file.name);
+    anchor.download = file.name;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    pushToast("success", "下载开始");
+  };
+
+  const openPreview = (file: NetdiskFile) => {
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const kind = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(
+      ext,
+    )
+      ? "image"
+      : ["mp4", "webm", "mov", "avi", "mkv", "ogg", "ogv"].includes(ext)
+        ? "video"
+        : null;
+    if (!kind) {
+      pushToast("info", "该文件类型暂不支持预览");
+      return;
     }
+    setPreview({ name: file.name, url: downloadUrl(path, file.name), kind });
   };
 
   const handleDownloadFolder = async (folder: NetdiskFolder) => {
@@ -526,8 +545,23 @@ export default function NetdiskPage() {
 
   const openShare = async (id: number, name: string) => {
     setShareModal({ id, name });
+    setShareToken("");
+    setShareExpiryDays(null);
     try {
-      const created = await createShare(id);
+      const shareResult = await listShares();
+      setShares(shareResult.items);
+    } catch (shareError) {
+      pushToast("error", (shareError as Error).message);
+    }
+  };
+
+  const handleCreateShare = async () => {
+    if (!shareModal) return;
+    try {
+      const expiresIn = shareExpiryDays
+        ? shareExpiryDays * 24 * 60 * 60 * 1000
+        : undefined;
+      const created = await createShare(shareModal.id, expiresIn);
       setShareToken(created.token);
       const shareResult = await listShares();
       setShares(shareResult.items);
@@ -1085,6 +1119,14 @@ export default function NetdiskPage() {
                       <div className="mt-2 flex justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                           type="button"
+                          onClick={() => openPreview(file)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`预览文件 ${file.name}`}
+                        >
+                          <Eye className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => void openShare(file.id, file.name)}
                           className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
                           aria-label={`分享文件 ${file.name}`}
@@ -1236,6 +1278,14 @@ export default function NetdiskPage() {
                         </div>
                       </div>
                       <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openPreview(file)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`预览文件 ${file.name}`}
+                        >
+                          <Eye className="h-4 w-4" aria-hidden="true" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => void openShare(file.id, file.name)}
@@ -1399,7 +1449,7 @@ export default function NetdiskPage() {
 
       {shareModal ? (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-panel border border-white/10 bg-ink-900 p-6 shadow-soft">
+          <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-panel border border-white/10 bg-ink-900 p-6 shadow-soft">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-mist-100">分享</h2>
@@ -1429,10 +1479,46 @@ export default function NetdiskPage() {
                     复制
                   </Button>
                 </div>
+                <p className="mt-2 text-xs text-mist-500">
+                  {shareExpiryDays ? `${shareExpiryDays} 天后过期` : "永久有效"}
+                </p>
               </div>
             ) : null}
 
-            <div className="mt-6">
+            {!shareToken ? (
+              <div className="mt-5">
+                <p className="text-xs font-medium text-mist-400">有效期</p>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {[
+                    { label: "永久", value: null },
+                    { label: "7 天", value: 7 },
+                    { label: "30 天", value: 30 },
+                  ].map((option) => (
+                    <button
+                      key={String(option.value)}
+                      type="button"
+                      onClick={() => setShareExpiryDays(option.value)}
+                      className={`h-10 rounded-xl border text-sm font-medium transition-colors ${
+                        shareExpiryDays === option.value
+                          ? "border-mint-300/50 bg-mint-300/10 text-mint-200"
+                          : "border-white/10 bg-white/[0.02] text-mist-300 hover:border-white/20"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  className="mt-4 w-full"
+                  onClick={() => void handleCreateShare()}
+                >
+                  <Share2 className="h-4 w-4" aria-hidden="true" />
+                  生成分享链接
+                </Button>
+              </div>
+            ) : null}
+
+            <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
               <p className="text-xs font-medium text-mist-400">我的分享</p>
               {shares.length === 0 ? (
                 <p className="mt-3 text-sm text-mist-500">暂无其他分享。</p>
@@ -1441,15 +1527,28 @@ export default function NetdiskPage() {
                   {shares.map((share) => (
                     <div
                       key={share.id}
-                      className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5"
                     >
-                      <span className="truncate text-xs text-mist-300">
-                        {window.location.origin}/share/{share.token}
-                      </span>
+                      <div className="min-w-0">
+                        <span className="block truncate text-xs text-mist-300">
+                          {window.location.origin}/share/{share.token}
+                        </span>
+                        <span
+                          className={`mt-1 block text-[10px] ${
+                            share.expires_at
+                              ? "text-amber-200/80"
+                              : "text-mint-200/80"
+                          }`}
+                        >
+                          {share.expires_at
+                            ? `${new Date(share.expires_at).toLocaleDateString("zh-CN")} 过期`
+                            : "永久有效"}
+                        </span>
+                      </div>
                       <button
                         type="button"
                         onClick={() => void handleDeleteShare(share.id)}
-                        className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
                         aria-label={`取消分享 ${share.token}`}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
@@ -1457,6 +1556,49 @@ export default function NetdiskPage() {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {preview ? (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setPreview(null)}
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-panel border border-white/10 bg-ink-900 shadow-soft"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+              <h2 className="min-w-0 truncate text-base font-bold text-mist-100">
+                {preview.name}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setPreview(null)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-mist-300 hover:text-mist-100"
+                aria-label="关闭预览"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-black/40 p-4">
+              {preview.kind === "image" ? (
+                <img
+                  src={preview.url}
+                  alt={preview.name}
+                  className="max-h-[75vh] max-w-full object-contain"
+                />
+              ) : (
+                <video
+                  src={preview.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-h-[75vh] max-w-full"
+                />
               )}
             </div>
           </div>
