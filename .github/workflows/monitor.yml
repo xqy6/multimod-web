@@ -1,6 +1,6 @@
 name: Health Monitor
 
-on:
+"on":
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
