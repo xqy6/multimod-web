@@ -1,7 +1,15 @@
 .pnpm-store/
 node_modules/
 dist/
+web/dist-offline/
+offline-package/
+offline-package-x86/
+runtime-cache/
 .env
 .env.local
 *.log
 *.tsbuildinfo
+netdisk-monitor-state.json
+.wrangler/
+backup/
+web/.env.production

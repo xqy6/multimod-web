@@ -23,5 +23,9 @@ describe("generateSite", () => {
     expect(html).toContain("小游戏中心");
     expect(html).toContain("实时聊天室");
     expect(html).toContain("素材图库");
+    expect(html).toContain('property="og:title"');
+    expect(html).toContain('property="og:image"');
+    expect(html).toContain('name="twitter:card"');
+    expect(html).toContain("application/ld+json");
   });
 });

@@ -1,5 +1,3 @@
-import JSZip from "jszip";
-
 import type { SiteAsset } from "@/lib/generateSite";
 
 function dataUrlToBytes(dataUrl: string): Uint8Array {
@@ -25,6 +23,7 @@ export async function exportSiteZip(input: {
   assets: SiteAsset[];
   title: string;
 }): Promise<{ blob: Blob; fileName: string }> {
+  const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   zip.file("index.html", input.html);
   zip.file(

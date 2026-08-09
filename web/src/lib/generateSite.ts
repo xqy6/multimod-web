@@ -213,13 +213,36 @@ export function renderSiteHtml(input: RenderInput): string {
   const subtitle =
     vibe.trim() ||
     "从 vibe 氛围到 UI 效果图、交互原型，再到完整可部署的前端代码。";
+  const previewImage =
+    assets.find((asset) => asset.dataUrl.startsWith("data:image"))?.dataUrl ??
+    "https://xieqiyan.pages.dev/og-cover.png";
+  const structuredData = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: headline,
+    description: subtitle,
+    inLanguage: "zh-CN",
+  }).replace(/</g, "\\u003c");
 
   return `<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="${escapeHtml(subtitle)}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="${escapeHtml(headline)}" />
+  <meta property="og:description" content="${escapeHtml(subtitle)}" />
+  <meta property="og:image" content="${escapeHtml(previewImage)}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="MODULO" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(headline)}" />
+  <meta name="twitter:description" content="${escapeHtml(subtitle)}" />
+  <meta name="twitter:image" content="${escapeHtml(previewImage)}" />
   <title>${escapeHtml(headline)}</title>
+  <script type="application/ld+json">${structuredData}</script>
   <style>${buildStyle(config)}</style>
 </head>
 <body>

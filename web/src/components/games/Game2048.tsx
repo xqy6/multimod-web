@@ -32,14 +32,19 @@ function tileColor(value: number): string {
 
 export function Game2048({
   best,
+  level = 1,
   onGameOver,
 }: {
   best: number;
+  level?: number;
   onGameOver: (score: number) => void;
 }) {
-  const [grid, setGrid] = useState<Grid2048>(() =>
-    addRandomTile(addRandomTile(createGrid())),
-  );
+  const createLevelGrid = () => {
+    let next = createGrid();
+    for (let i = 0; i < level + 1; i += 1) next = addRandomTile(next);
+    return next;
+  };
+  const [grid, setGrid] = useState<Grid2048>(createLevelGrid);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
@@ -89,7 +94,7 @@ export function Game2048({
   }, [gameOver, onGameOver, score]);
 
   const reset = () => {
-    setGrid(addRandomTile(addRandomTile(createGrid())));
+    setGrid(createLevelGrid());
     setScore(0);
     setGameOver(false);
     setWon(false);

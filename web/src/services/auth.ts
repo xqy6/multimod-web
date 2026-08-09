@@ -1,11 +1,18 @@
-import type { Session } from "@supabase/supabase-js";
-
-import { supabase } from "@/lib/supabase";
+import {
+  apiRequest,
+  clearServerSession,
+  getServerToken,
+  getStoredUser,
+  setServerSession,
+  shouldUseLocalBackend,
+} from "@/lib/api";
 
 export interface AppUser {
   id: string;
   email: string;
   display_name: string;
+  role?: "user" | "admin";
+  isAdmin?: boolean;
   isDemo: boolean;
 }
 
@@ -14,50 +21,77 @@ export interface AuthResult {
   error: string | null;
 }
 
-function toAppUser(session: Session | null): AppUser | null {
-  if (!session?.user) return null;
-  const meta = session.user.user_metadata ?? {};
+export interface ServerSession {
+  user: AppUser | null;
+}
+
+export function toAppUser(user: AppUser): AppUser {
   return {
-    id: session.user.id,
-    email: session.user.email ?? "",
-    display_name:
-      typeof meta.display_name === "string"
-        ? meta.display_name
-        : (session.user.email?.split("@")[0] ?? "用户"),
+    id: String(user.id),
+    email: String(user.email ?? ""),
+    display_name: String(user.display_name ?? user.email?.split("@")[0] ?? "用户"),
+    role: user.role === "admin" ? "admin" : "user",
+    isAdmin: user.isAdmin === true || user.role === "admin",
     isDemo: false,
   };
 }
 
 export async function getSession(): Promise<{
-  session: Session | null;
+  session: ServerSession | null;
   error: string | null;
 }> {
-  if (!supabase) return { session: null, error: "Supabase 未配置" };
-  const { data, error } = await supabase.auth.getSession();
-  return { session: data.session, error: error?.message ?? null };
+  if (shouldUseLocalBackend()) return { session: null, error: null };
+  if (!getServerToken()) return { session: null, error: null };
+  try {
+    const { user } = await apiRequest<{ user: AppUser }>("/api/auth/me");
+    return { session: { user: toAppUser(user) }, error: null };
+  } catch {
+    clearServerSession();
+    return { session: null, error: "登录已失效" };
+  }
 }
 
-export function onAuthStateChange(callback: (session: Session | null) => void) {
-  if (!supabase) return { unsubscribe: () => undefined };
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session);
-  });
-  return data.subscription;
+export function onAuthStateChange(
+  callback: (session: ServerSession | null) => void,
+) {
+  if (typeof window === "undefined") {
+    return { unsubscribe: () => undefined };
+  }
+  const emit = () => {
+    const user = getStoredUser<AppUser>();
+    callback(user ? { user: toAppUser(user) } : null);
+  };
+  window.addEventListener("multimod-server-auth", emit);
+  window.addEventListener("storage", emit);
+  return {
+    unsubscribe: () => {
+      window.removeEventListener("multimod-server-auth", emit);
+      window.removeEventListener("storage", emit);
+    },
+  };
 }
 
 export async function signInWithPassword(
   email: string,
   password: string,
 ): Promise<AuthResult> {
-  if (!supabase) return { user: null, error: "Supabase 未配置" };
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  return {
-    user: toAppUser(data.session),
-    error: error?.message ?? null,
-  };
+  if (shouldUseLocalBackend()) {
+    return { user: null, error: "当前离线，请使用离线浏览" };
+  }
+  try {
+    const result = await apiRequest<{ user: AppUser; token: string }>(
+      "/api/auth/login",
+      {
+        method: "POST",
+        body: { email, password },
+      },
+    );
+    const user = toAppUser(result.user);
+    setServerSession(result.token, user);
+    return { user, error: null };
+  } catch (error) {
+    return { user: null, error: (error as Error).message };
+  }
 }
 
 export async function signUp(
@@ -65,31 +99,43 @@ export async function signUp(
   password: string,
   displayName: string,
 ): Promise<AuthResult> {
-  if (!supabase) return { user: null, error: "Supabase 未配置" };
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { display_name: displayName } },
-  });
-  return {
-    user: toAppUser(data.session),
-    error: error?.message ?? null,
-  };
+  if (shouldUseLocalBackend()) {
+    return { user: null, error: "当前离线，请使用离线浏览" };
+  }
+  try {
+    const result = await apiRequest<{ user: AppUser; token: string }>(
+      "/api/auth/register",
+      {
+        method: "POST",
+        body: { email, password, displayName },
+      },
+    );
+    const user = toAppUser(result.user);
+    setServerSession(result.token, user);
+    return { user, error: null };
+  } catch (error) {
+    return { user: null, error: (error as Error).message };
+  }
 }
 
 export async function signInWithMagicLink(
-  email: string,
+  _email: string,
 ): Promise<{ error: string | null }> {
-  if (!supabase) return { error: "Supabase 未配置" };
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true },
-  });
-  return { error: error?.message ?? null };
+  if (shouldUseLocalBackend()) {
+    return { error: "当前离线，请使用离线浏览" };
+  }
+  return { error: "当前版本请使用密码登录或注册" };
 }
 
 export async function signOut(): Promise<void> {
-  await supabase?.auth.signOut();
+  if (shouldUseLocalBackend()) {
+    clearServerSession();
+    return;
+  }
+  try {
+    await apiRequest("/api/auth/logout", { method: "POST" });
+  } catch {
+    // ignore network failures while clearing local session
+  }
+  clearServerSession();
 }
-
-export { toAppUser };

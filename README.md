@@ -4,24 +4,19 @@
 
 ## 模块
 
-- M1 品牌首页：MotionSites 深色玻璃拟态视觉，用户视频与 CC0 动漫素材。
-- M2 账号与工作台：Supabase 登录、项目创建/删除/重命名，未配置时进入本地演示模式。
-- M3 网站生成器：vibe 风格解析、模块选择、素材上传、实时预览、ZIP 导出。
-- M4 小游戏中心：2048、贪吃蛇、俄罗斯方块，支持排行榜。
-- M5 内置浏览器：多标签、历史、书签、搜索、受限提示。
-- M6 聊天室：多房间、实时消息、在线状态，本地演示模式可跨页同步。
-- M7 部署：Vercel + Supabase 配置与上线文档。
+- M1 品牌首页：MotionSites 深色玻璃拟态视觉
+- M2 账号与工作台：Railway 登录、注册、项目创建/删除/重命名
+- M3 网站生成器：vibe 风格解析、模块选择、素材上传、实时预览、ZIP 导出
+- M4 小游戏中心：2048、贪吃蛇、俄罗斯方块与排行榜
+- M5 内置浏览器：多标签、历史、书签、搜索、受限站点提示
+- M6 聊天室：多房间、实时消息、在线状态、未读与正在输入
+- M7 网盘：百度网盘风格文件管理、回收站、分享
 
-## 增强
+## 技术栈
 
-- PWA 离线缓存：安装后可离线打开应用外壳与已缓存资源。
-- 路由懒加载：各模块按需加载，首包体积从 536KB 降到 361KB。
-- 在线状态提示：断网时应用壳显示“离线模式”。
-- 浏览器代理：可选 Cloudflare Worker 代理，受限站点提供“在系统浏览器打开”兜底。
-- 性能：图片懒加载、视频海报/预加载、JSZip 按需加载、PWA 预缓存从 17.7MB 降到 8.4MB、首包从 361KB 降到 238KB。
-- 体验：浏览器前进/后退、工作台搜索/筛选/重命名、全局 Toast、错误边界、聊天删除消息与正在输入提示、头像上传、SEO 标签。
-- 工程：ESLint + Prettier、Supabase 全量类型、共享类型目录 `web/src/shared/`、亮/暗主题切换、聊天未读数。
-- 网盘：`/netdisk` 已升级为百度网盘风格，支持分类栏、网格/列表视图、拖拽上传、文件重命名、搜索、批量删除、回收站与分享链接。
+- 前端：React + Vite + TypeScript + Tailwind CSS v4 + Framer Motion
+- 后端：Node.js + Express + SQLite + 对象存储
+- 托管：Cloudflare Pages + Railway
 
 ## 快速开始
 
@@ -31,30 +26,17 @@ pnpm install
 pnpm dev
 ```
 
-访问 `http://127.0.0.1:5173/`。未配置 Supabase 时，应用自动使用本地演示模式。
-
-## 部署
-
-完整上线步骤见 `docs/DEPLOYMENT.md`。
-
-## Node.js 网盘后端
-
-项目内包含一个独立的百度网盘式 Node.js 后端：SQLite 元数据、对象存储去重、分片上传、回收站与分层代码：
-
-```bash
-cd server
-pnpm install
-pnpm start
-```
-
-默认运行在 `http://localhost:4000`，支持创建/删除/重命名/列出文件夹、上传/下载/删除文件。完整 API 见 `server/README.md`。
+访问 `http://127.0.0.1:5173/`。未配置 Railway 后端时，应用使用本地演示模式。
 
 ## 目录
 
 ```text
 web/            React + Vite + TypeScript 前端
 server/         百度网盘式后端（SQLite + 对象存储去重 + 分片上传 + 回收站）
-supabase/       SQL 迁移与 Supabase 说明
+supabase/       Supabase 迁移与说明（旧方案，已由 Railway 后端替代）
+proxy/          Cloudflare Worker 代理参考
 docs/           设计文档、计划、部署文档
 .github/        CI 工作流
 ```
+
+完整上线步骤见 `docs/DEPLOYMENT.md`。

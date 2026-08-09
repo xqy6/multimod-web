@@ -7,7 +7,14 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist", "node_modules", "public", "screenshots"],
+    ignores: [
+      "dist",
+      "dist-offline",
+      "node_modules",
+      "public",
+      "screenshots",
+      ".wrangler",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

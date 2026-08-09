@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import {
   getShare,
   sharedDownloadUrl,
@@ -40,8 +41,20 @@ export default function SharePage() {
     };
   }, [token]);
 
+  usePageMeta({
+    title: data ? `${data.name} - MODULO 分享` : "文件分享 - MODULO",
+    description: error
+      ? error
+      : data
+        ? data.kind === "file"
+          ? `下载分享文件 ${data.name}`
+          : `查看并下载分享文件夹 ${data.name}`
+        : "正在加载 MODULO 分享内容",
+    image: "/og-cover.png",
+  });
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-ink-950 px-5 py-10 text-mist-100">
+    <main className="lithos-shell flex min-h-screen items-center justify-center bg-ink-950 px-5 py-10 text-mist-100">
       <div className="w-full max-w-xl">
         <Link to="/" className="text-xs text-mist-500 hover:text-mist-300">
           ← 返回首页

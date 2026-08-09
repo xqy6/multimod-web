@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>离线P2P聊天</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #000;
+        color: #fff;
+        font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 0 0 8px;
+      }
+      .sub {
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0 0 24px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      @media (max-width: 720px) {
+        .cards {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 20px;
+      }
+      .card h2 {
+        font-size: 16px;
+        margin: 0 0 14px;
+      }
+      input,
+      textarea {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 10px;
+        color: #fff;
+        padding: 10px 12px;
+        font-size: 13px;
+        font-family: monospace;
+        margin-bottom: 10px;
+        outline: none;
+      }
+      textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+      button {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.26);
+        border-radius: 10px;
+        color: #fff;
+        padding: 11px 16px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .status {
+        color: #f2d29b;
+        font-size: 12px;
+        margin: 8px 0 0;
+        min-height: 18px;
+      }
+      .error {
+        color: #ff8a8a;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row textarea {
+        flex: 1;
+      }
+      .row button {
+        width: auto;
+        padding: 10px 14px;
+      }
+      #chat {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        height: 70vh;
+        display: flex;
+        flex-direction: column;
+      }
+      #messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+      }
+      .msg {
+        margin-bottom: 10px;
+        max-width: 78%;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .msg.own {
+        margin-left: auto;
+        background: #9ee4c5;
+        color: #0a0b10;
+      }
+      .msg.other {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .msg small {
+        display: block;
+        opacity: 0.65;
+        font-size: 11px;
+        margin-bottom: 4px;
+      }
+      #send-row {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      #send-row input {
+        margin: 0;
+      }
+      #send-row button {
+        width: auto;
+      }
+      #chat-head {
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="setup">
+        <h1>离线 P2P 聊天</h1>
+        <p class="sub">
+          把这个 HTML 复制到两台设备，用浏览器打开。完全断网也能直连，不需要服务器。
+        </p>
+        <div class="cards">
+          <div class="card">
+            <h2>发起连接</h2>
+            <input id="nickname-a" placeholder="你的昵称" />
+            <button id="btn-offer" onclick="createOffer()">生成连接码</button>
+            <div class="row" style="margin-top: 10px">
+              <textarea id="offer-output" readonly placeholder="连接码会显示在这里"></textarea>
+              <button onclick="copyText('offer-output')">复制</button>
+            </div>
+            <p id="offer-status" class="status"></p>
+            <input id="answer-input" placeholder="粘贴对方的应答码" />
+            <button id="btn-complete" onclick="completeConnection()">完成连接</button>
+          </div>
+          <div class="card">
+            <h2>接受连接</h2>
+            <input id="nickname-b" placeholder="你的昵称" />
+            <input id="offer-input" placeholder="粘贴对方发来的连接码" />
+            <button id="btn-answer" onclick="createAnswer()">生成应答码</button>
+            <div class="row" style="margin-top: 10px">
+              <textarea id="answer-output" readonly placeholder="应答码会显示在这里"></textarea>
+              <button onclick="copyText('answer-output')">复制</button>
+            </div>
+            <p id="answer-status" class="status"></p>
+          </div>
+        </div>
+      </div>
+
+      <div id="chat" class="hidden">
+        <div id="chat-head">已连接，完全离线直连</div>
+        <div id="messages"></div>
+        <div id="send-row">
+          <input id="message-input" placeholder="输入消息，Enter 发送" />
+          <button onclick="sendMessage()">发送</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let pc = null;
+      let channel = null;
+      let role = null;
+
+      function setStatus(id, text) {
+        const node = document.getElementById(id);
+        if (node) node.textContent = text;
+      }
+
+      function copyText(id) {
+        const node = document.getElementById(id);
+        if (!node || !node.value) return;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(node.value).catch(function () {
+            node.select();
+            document.execCommand("copy");
+          });
+        } else {
+          node.select();
+          document.execCommand("copy");
+        }
+      }
+
+      function setupChannel(c) {
+        channel = c;
+        c.onopen = function () {
+          showChat();
+        };
+        c.onmessage = function (event) {
+          try {
+            appendMessage(JSON.parse(String(event.data)));
+          } catch (e) {}
+        };
+      }
+
+      function showChat() {
+        document.getElementById("setup").classList.add("hidden");
+        document.getElementById("chat").classList.remove("hidden");
+      }
+
+      function collectSignal(p, type) {
+        return new Promise(function (resolve) {
+          const candidates = [];
+          let done = false;
+          function finish() {
+            if (done) return;
+            done = true;
+            resolve({
+              type: type,
+              sdp: p.localDescription ? p.localDescription.sdp : "",
+              candidates: candidates,
+            });
+          }
+          p.onicecandidate = function (event) {
+            if (event.candidate) {
+              candidates.push(event.candidate.toJSON());
+            } else {
+              finish();
+            }
+          };
+          setTimeout(function () {
+            if (!p.localDescription) {
+              setTimeout(finish, 600);
+            } else {
+              finish();
+            }
+          }, 1500);
+        });
+      }
+
+      function withTimeout(promise, ms, message) {
+        return Promise.race([
+          promise,
+          new Promise(function (_, reject) {
+            setTimeout(function () {
+              reject(new Error(message));
+            }, ms);
+          }),
+        ]);
+      }
+
+      function currentNickname() {
+        const a = document.getElementById("nickname-a").value.trim();
+        const b = document.getElementById("nickname-b").value.trim();
+        return role === "initiator" ? a : b;
+      }
+
+      async function createOffer() {
+        const nickname = document.getElementById("nickname-a").value.trim();
+        if (!nickname) {
+          setStatus("offer-status", "请先填写昵称");
+          return;
+        }
+        if (typeof RTCPeerConnection === "undefined") {
+          setStatus("offer-status", "当前浏览器不支持 WebRTC，请使用 Chrome 或 Edge");
+          return;
+        }
+        role = "initiator";
+        document.getElementById("btn-offer").disabled = true;
+        setStatus("offer-status", "正在生成…");
+        try {
+          pc = new RTCPeerConnection({ iceServers: [] });
+          pc.onconnectionstatechange = function () {
+            if (pc.connectionState === "connected") showChat();
+          };
+          const c = pc.createDataChannel("offline-chat");
+          setupChannel(c);
+          const offer = await withTimeout(
+            pc.createOffer(),
+            5000,
+            "生成连接码超时",
+          );
+          await withTimeout(
+            pc.setLocalDescription(offer),
+            5000,
+            "生成连接码超时",
+          );
+          const signal = await withTimeout(
+            collectSignal(pc, "offer"),
+            5000,
+            "生成连接码超时",
+          );
+          document.getElementById("offer-output").value = JSON.stringify(signal);
+          setStatus("offer-status", "已生成，请复制发给对方");
+        } catch (e) {
+          setStatus("offer-status", e.message || "生成失败");
+        } finally {
+          document.getElementById("btn-offer").disabled = false;
+        }
+      }
+
+      async function createAnswer() {
+        const nickname = document.getElementById("nickname-b").value.trim();
+        if (!nickname) {
+          setStatus("answer-status", "请先填写昵称");
+          return;
+        }
+        const rawOffer = document.getElementById("offer-input").value;
+        if (!rawOffer.trim()) {
+          setStatus("answer-status", "请先粘贴对方发来的连接码");
+          return;
+        }
+        if (typeof RTCPeerConnection === "undefined") {
+          setStatus("answer-status", "当前浏览器不支持 WebRTC，请使用 Chrome 或 Edge");
+          return;
+        }
+        let offer;
+        try {
+          offer = JSON.parse(rawOffer);
+        } catch (e) {
+          setStatus("answer-status", "连接码格式不正确");
+          return;
+        }
+        role = "responder";
+        document.getElementById("btn-answer").disabled = true;
+        setStatus("answer-status", "正在生成…");
+        try {
+          pc = new RTCPeerConnection({ iceServers: [] });
+          pc.onconnectionstatechange = function () {
+            if (pc.connectionState === "connected") showChat();
+          };
+          pc.ondatachannel = function (event) {
+            setupChannel(event.channel);
+          };
+          await withTimeout(
+            pc.setRemoteDescription(offer),
+            5000,
+            "生成应答码超时",
+          );
+          for (const candidate of offer.candidates || []) {
+            await pc.addIceCandidate(candidate).catch(function () {});
+          }
+          const answer = await withTimeout(
+            pc.createAnswer(),
+            5000,
+            "生成应答码超时",
+          );
+          await withTimeout(
+            pc.setLocalDescription(answer),
+            5000,
+            "生成应答码超时",
+          );
+          const signal = await withTimeout(
+            collectSignal(pc, "answer"),
+            5000,
+            "生成应答码超时",
+          );
+          document.getElementById("answer-output").value = JSON.stringify(signal);
+          setStatus("answer-status", "已生成，请复制发回对方");
+        } catch (e) {
+          setStatus("answer-status", e.message || "生成失败");
+        } finally {
+          document.getElementById("btn-answer").disabled = false;
+        }
+      }
+
+      async function completeConnection() {
+        const rawAnswer = document.getElementById("answer-input").value;
+        if (!rawAnswer.trim()) {
+          setStatus("offer-status", "请先粘贴对方发来的应答码");
+          return;
+        }
+        let answer;
+        try {
+          answer = JSON.parse(rawAnswer);
+        } catch (e) {
+          setStatus("offer-status", "应答码格式不正确");
+          return;
+        }
+        if (!pc) return;
+        if (pc.signalingState === "stable") {
+          if (channel && channel.readyState === "open") showChat();
+          setStatus("offer-status", "已处理，等待连接");
+          return;
+        }
+        if (pc.signalingState !== "have-local-offer") {
+          setStatus("offer-status", "当前状态无法粘贴应答码，请重新发起连接");
+          return;
+        }
+        try {
+          await pc.setRemoteDescription(answer);
+          for (const candidate of answer.candidates || []) {
+            await pc.addIceCandidate(candidate).catch(function () {});
+          }
+        } catch (e) {
+          setStatus("offer-status", e.message || "连接失败");
+        }
+      }
+
+      function appendMessage(message) {
+        const box = document.getElementById("messages");
+        const div = document.createElement("div");
+        div.className = "msg " + (message.nickname === currentNickname() ? "own" : "other");
+        div.innerHTML =
+          "<small>" +
+          escapeHtml(message.nickname) +
+          "</small>" +
+          escapeHtml(message.body);
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      function sendMessage() {
+        const input = document.getElementById("message-input");
+        const text = input.value.trim();
+        if (!text || !channel) return;
+        const message = {
+          nickname: currentNickname(),
+          body: text,
+          timestamp: new Date().toISOString(),
+        };
+        channel.send(JSON.stringify(message));
+        appendMessage(message);
+        input.value = "";
+      }
+
+      document.getElementById("message-input").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+    </script>
+  </body>
+</html>

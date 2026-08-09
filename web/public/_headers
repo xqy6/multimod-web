@@ -1,0 +1,11 @@
+/assets/*.mp4
+  Cache-Control: public, max-age=2592000
+
+/assets/*
+  Cache-Control: public, max-age=604800
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/*
+  Cache-Control: public, max-age=0, must-revalidate

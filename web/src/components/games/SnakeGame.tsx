@@ -14,21 +14,27 @@ const CELL_SIZE = 22;
 
 export function SnakeGame({
   best,
+  level = 1,
   onGameOver,
 }: {
   best: number;
+  level?: number;
   onGameOver: (score: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [state, setState] = useState<SnakeState>(() => createSnake());
+  const size = [20, 16, 12][Math.min(level, 3) - 1] ?? 20;
+  const speed = [140, 100, 70][Math.min(level, 3) - 1] ?? 140;
+  const [state, setState] = useState<SnakeState>(() =>
+    createSnake(size, size),
+  );
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       setState((current) => (paused ? current : stepSnake(current)));
-    }, 120);
+    }, speed);
     return () => window.clearInterval(timer);
-  }, [paused]);
+  }, [paused, speed]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -107,7 +113,7 @@ export function SnakeGame({
   }, [onGameOver, state.gameOver, state.score]);
 
   const reset = () => {
-    setState(createSnake());
+    setState(createSnake(size, size));
     setPaused(false);
   };
 

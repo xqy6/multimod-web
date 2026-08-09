@@ -1,6 +1,6 @@
 import type { Project } from "@shared";
 
-import { supabase } from "@/lib/supabase";
+import { apiRequest, shouldUseLocalBackend } from "@/lib/api";
 
 export type { Project };
 
@@ -29,14 +29,15 @@ function nowIso() {
 }
 
 export async function listProjects(): Promise<ProjectResult> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     return { data: readDemoProjects(), error: null };
   }
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .order("updated_at", { ascending: false });
-  return { data, error: error?.message ?? null };
+  try {
+    const { data } = await apiRequest<{ data: Project[] }>("/api/projects");
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error: (error as Error).message };
+  }
 }
 
 export async function createProject(input: {
@@ -44,7 +45,7 @@ export async function createProject(input: {
   vibe_prompt?: string;
   modules?: string[];
 }): Promise<{ data: Project | null; error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const project: Project = {
       id: crypto.randomUUID(),
       title: input.title,
@@ -60,26 +61,26 @@ export async function createProject(input: {
     writeDemoProjects(projects);
     return { data: project, error: null };
   }
-
-  const { data, error } = await supabase
-    .from("projects")
-    .insert({
-      title: input.title,
-      vibe_prompt: input.vibe_prompt ?? "",
-      modules: input.modules ?? [],
-      style_params: {},
-      status: "draft",
-    })
-    .select()
-    .single();
-  return { data, error: error?.message ?? null };
+  try {
+    const { data } = await apiRequest<{ data: Project }>("/api/projects", {
+      method: "POST",
+      body: {
+        title: input.title,
+        vibe_prompt: input.vibe_prompt ?? "",
+        modules: input.modules ?? [],
+      },
+    });
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error: (error as Error).message };
+  }
 }
 
 export async function renameProject(
   id: string,
   title: string,
 ): Promise<{ error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const projects = readDemoProjects();
     const next = projects.map((project) =>
       project.id === id ? { ...project, title, updated_at: nowIso() } : project,
@@ -87,39 +88,47 @@ export async function renameProject(
     writeDemoProjects(next);
     return { error: null };
   }
-  const { error } = await supabase
-    .from("projects")
-    .update({ title, updated_at: nowIso() })
-    .eq("id", id);
-  return { error: error?.message ?? null };
+  try {
+    await apiRequest(`/api/projects/${id}`, {
+      method: "PATCH",
+      body: { title },
+    });
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }
 
 export async function deleteProject(
   id: string,
 ): Promise<{ error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     writeDemoProjects(
       readDemoProjects().filter((project) => project.id !== id),
     );
     return { error: null };
   }
-  const { error } = await supabase.from("projects").delete().eq("id", id);
-  return { error: error?.message ?? null };
+  try {
+    await apiRequest(`/api/projects/${id}`, { method: "DELETE" });
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }
 
 export async function getProject(
   id: string,
 ): Promise<{ data: Project | null; error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const project = readDemoProjects().find((item) => item.id === id);
     return { data: project ?? null, error: project ? null : "项目不存在" };
   }
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("id", id)
-    .single();
-  return { data, error: error?.message ?? null };
+  try {
+    const { data } = await apiRequest<{ data: Project }>(`/api/projects/${id}`);
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error: (error as Error).message };
+  }
 }
 
 export async function updateProject(
@@ -131,7 +140,7 @@ export async function updateProject(
     >
   >,
 ): Promise<{ error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const projects = readDemoProjects();
     writeDemoProjects(
       projects.map((project) =>
@@ -142,9 +151,13 @@ export async function updateProject(
     );
     return { error: null };
   }
-  const { error } = await supabase
-    .from("projects")
-    .update({ ...patch, updated_at: nowIso() })
-    .eq("id", id);
-  return { error: error?.message ?? null };
+  try {
+    await apiRequest(`/api/projects/${id}`, {
+      method: "PATCH",
+      body: patch,
+    });
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }

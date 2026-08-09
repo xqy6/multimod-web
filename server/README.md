@@ -1,46 +1,26 @@
-# 百度网盘式 Node.js 后端
+# Railway 全栈后端
 
-重构为生产化的网盘后端架构，而不是简单的“磁盘文件夹 API”。
+Node.js + Express + SQLite + 对象存储，为网盘、账号、项目、素材、聊天和排行榜提供 API。
 
 ## 架构
 
 ```text
 server/
 ├─ src/
-│  ├─ index.js                 # 入口、中间件、错误处理
-│  ├─ config.js                # 端口、数据目录、分片限制
-│  ├─ db/
-│  │  └─ index.js              # SQLite 元数据库（node:sqlite）
-│  ├─ middleware/
-│  │  └─ auth.js               # Bearer Token 认证（未登录走演示用户）
-│  ├─ repositories/            # 数据访问层
-│  │  ├─ nodeRepository.js
-│  │  ├─ uploadRepository.js
-│  │  └─ shareRepository.js
-│  ├─ services/                # 业务逻辑层
-│  │  ├─ authService.js
-│  │  ├─ nodeService.js        # 逻辑目录树
-│  │  ├─ storageService.js     # 对象存储、去重、分片合并
-│  │  └─ chunkService.js       # 分片上传状态机
-│  ├─ controllers/             # 控制器层
-│  ├─ routes/                  # 路由层
-│  └─ utils/
-├─ data/
-│  ├─ netdisk.db               # SQLite 元数据
-│  ├─ objects/                 # 按 SHA-256 去重的对象文件
-│  └─ uploads/                 # 分片临时目录
+│  ├─ index.js              # 入口、中间件、错误处理
+│  ├─ config.js             # 端口、数据目录、上传限制
+│  ├─ db/index.js           # SQLite 表结构与迁移
+│  ├─ middleware/auth.js    # Bearer Token 认证
+│  ├─ routes/               # 路由层
+│  ├─ controllers/          # 控制器层
+│  ├─ services/             # 业务逻辑层
+│  ├─ repositories/         # 数据访问层
+│  └─ utils/                # 工具
+├─ scripts/smoke.mjs        # 全链路冒烟测试
+└─ data/                    # SQLite、对象存储、临时上传
 ```
 
-## 百度网盘式设计
-
-- **元数据与物理存储分离**：文件夹树、文件记录、回收站、分享都存 SQLite；真实文件以 `sha256` 命名存入对象存储。
-- **文件去重**：相同内容的文件只保存一份对象，多个文件记录共享同一个 `storage_key`。
-- **分片上传**：`init → upload chunk → complete`，服务端记录已上传分片。
-- **回收站**：删除是软删除，可恢复或彻底清除。
-- **分享**：文件/文件夹可生成分享 Token，支持过期时间。
-- **分层代码**：routes → controllers → services → repositories，每个模块职责单一。
-
-## 安装与启动
+## 启动
 
 ```bash
 cd server
@@ -48,66 +28,107 @@ pnpm install
 pnpm start
 ```
 
-默认地址：`http://localhost:4000`
+默认运行在 `http://localhost:4000`。
 
-## API
+## API 摘要
 
-### 认证
+### 认证与资料
 
 ```text
-POST /api/auth/register  { "username": "alice", "password": "123456" }
-POST /api/auth/login     { "username": "alice", "password": "123456" }
+POST /api/auth/register  { "email": "a@b.com", "password": "123456", "displayName": "昵称" }
+POST /api/auth/login     { "email": "a@b.com", "password": "123456" }
+GET  /api/auth/me
 POST /api/auth/logout
+PUT  /api/profile        { "displayName": "新昵称" }
+POST /api/profile/avatar multipart: file
+GET  /api/profile/:userId/avatar
 ```
 
-未带 `Authorization` 时自动使用 `demo` 用户，便于前端本地演示。
-
-### 文件夹
+### 项目与素材
 
 ```text
-GET    /api/folders?path=/docs
-POST   /api/folders?path=/docs        { "name": "资料" }
-PUT    /api/folders?path=/docs/资料    { "newName": "文档" }
-DELETE /api/folders?path=/docs/资料
+GET/POST /api/projects
+GET/PATCH/DELETE /api/projects/:id
+GET/POST /api/projects/:projectId/assets/text
+POST /api/projects/:projectId/assets/image multipart: file
+DELETE /api/assets/:id
+GET /api/assets/:id/content
 ```
 
-### 文件
+### 聊天
 
 ```text
-POST   /api/files/upload?path=/docs        multipart: file
-PUT    /api/files/rename?path=/docs&name=a.txt   { "newName": "b.txt" }
-DELETE /api/files?path=/docs&name=a.txt
-GET    /api/files/download?path=/docs&name=a.txt
+GET/POST /api/rooms
+POST /api/rooms/:roomId/join|leave|read|typing
+GET /api/rooms/:roomId/members|messages
+POST /api/rooms/:roomId/messages
+DELETE /api/messages/:messageId
+GET /api/rooms/:roomId/events
+GET /api/unread
 ```
 
-### 分片上传
+### 局域网聊天
 
 ```text
-POST /api/chunks/init     { "fileName": "big.zip", "totalSize": 1000, "chunkSize": 500, "totalChunks": 2 }
-POST /api/chunks/upload   multipart: uploadId, index, chunk
-POST /api/chunks/complete { "uploadId": "..." }
+GET  /lan/health
+GET  /lan/rooms
+POST /lan/rooms { "name": "客厅" }
+GET  /lan/rooms/:roomId/messages
+POST /lan/rooms/:roomId/messages { "nickname": "小明", "body": "你好" }
+GET  /lan/rooms/:roomId/events
 ```
 
-### 回收站
+本地启动：
+
+```bash
+cd web && pnpm build
+cd ../server && pnpm lan
+```
+
+同一 Wi-Fi 下的设备访问终端打印的 `http://局域网IP:4100` 即可实时聊天。
+
+### 排行榜
 
 ```text
-GET    /api/trash
-POST   /api/trash/restore  { "nodeId": 1 }
-DELETE /api/trash?nodeId=1
+GET /api/scores/leaderboard?game_id=2048
+GET /api/scores/best?game_id=2048
+POST /api/scores { "game_id": "2048", "score": 100 }
 ```
 
-### 分享
+### 网盘
 
-```text
-POST   /api/shares  { "nodeId": 1, "expiresIn": 86400000 }
-GET    /api/shares
-GET    /api/shares/:token
-GET    /api/shares/:token/download
-DELETE /api/shares/:id
-```
+文件管理、分片上传、回收站、分享等接口保持原有结构，详细说明见旧版接口清单。
 
 ## 测试
 
 ```bash
+$env:SMOKE_BASE="http://127.0.0.1:4000"
 node scripts/smoke.mjs
 ```
+
+## 备份
+
+```bash
+pnpm backup
+```
+
+脚本会把 `data/` 复制到 `backups/时间戳/`，并支持：
+
+- S3 兼容对象存储（Cloudflare R2、AWS S3、MinIO）：配置 `BACKUP_S3_ENDPOINT`、`BACKUP_S3_BUCKET`、`BACKUP_S3_ACCESS_KEY`、`BACKUP_S3_SECRET_KEY`。
+- Webhook 推送：配置 `BACKUP_WEBHOOK_URL`，脚本会把备份打成 zip 推送过去。
+- 自动清理：`BACKUP_KEEP_DAYS` 默认保留 7 天。
+
+建议配合 Railway Volume 一起使用；GitHub Actions 的 `backup.yml` 会通过 `GET /api/backup/full`（需配置 `BACKUP_TOKEN`，Bearer 认证）拉取服务器完整数据并上传到 S3/R2 或 Webhook。
+
+## 日志、健康检查与监控
+
+- 每个请求会输出结构化 JSON 日志到 `logs/server.log`；配置 `LOG_WEBHOOK_URL` 可把日志/错误转发到 Slack、Telegram 等 webhook。
+- `GET /api/health` 返回数据库、对象存储、上传目录、运行时长和版本状态。
+- 前端错误通过 `POST /api/telemetry` 统一收集，可配置 `TELEMETRY_WEBHOOK_URL` 单独告警。
+- 仓库 `.github/workflows/monitor.yml` 每 5 分钟探测健康地址，故障/恢复时通过 `MONITOR_WEBHOOK_URL` 告警。
+
+## 安全
+
+- 登录/注册接口有频率限制
+- 连续登录失败 5 次会锁定 15 分钟
+- 管理员账号密码通过 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 环境变量配置

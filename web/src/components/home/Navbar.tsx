@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Moon, Sparkles, Sun, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, type MouseEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { useAuthStore } from "@/stores/auth";
 import { useThemeStore } from "@/stores/theme";
 
 const navLinks: { label: string; to?: string; href?: string }[] = [
@@ -16,6 +17,8 @@ const navLinks: { label: string; to?: string; href?: string }[] = [
 ];
 
 export function Navbar() {
+  const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const theme = useThemeStore((state) => state.theme);
@@ -28,12 +31,29 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const links = user?.isAdmin
+    ? [...navLinks, { label: "管理", to: "/admin" }]
+    : navLinks;
+
+  const handleHashClick = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (!href.startsWith("#")) return;
+    const target = document.getElementById(href.slice(1));
+    if (target) {
+      event.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      setMenuOpen(false);
+    } else {
+      event.preventDefault();
+      navigate(`/home${href}`);
+    }
+  };
+
   return (
     <motion.header
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
+      className={`fixed inset-x-0 top-0 z-[100] transition-all duration-500 ${
         scrolled
           ? "border-b border-white/10 bg-ink-950/70 backdrop-blur-xl"
           : "border-b border-transparent bg-transparent"
@@ -50,7 +70,7 @@ export function Navbar() {
         </a>
 
         <div className="hidden items-center gap-7 lg:flex">
-          {navLinks.map((link) =>
+          {links.map((link) =>
             link.to ? (
               <Link
                 key={link.to}
@@ -63,6 +83,7 @@ export function Navbar() {
               <a
                 key={link.href}
                 href={link.href}
+                onClick={(event) => handleHashClick(event, link.href!)}
                 className="text-sm text-mist-300 transition-colors hover:text-mist-100"
               >
                 {link.label}
@@ -114,7 +135,7 @@ export function Navbar() {
             className="overflow-hidden border-b border-white/10 bg-ink-950/90 backdrop-blur-xl lg:hidden"
           >
             <div className="flex flex-col gap-1 px-5 py-4">
-              {navLinks.map((link) =>
+              {links.map((link) =>
                 link.to ? (
                   <Link
                     key={link.to}
@@ -128,7 +149,10 @@ export function Navbar() {
                   <a
                     key={link.href}
                     href={link.href}
-                    onClick={() => setMenuOpen(false)}
+                    onClick={(event) => {
+                      handleHashClick(event, link.href!);
+                      setMenuOpen(false);
+                    }}
                     className="rounded-xl px-3 py-3 text-sm text-mist-200 transition-colors hover:bg-white/5"
                   >
                     {link.label}

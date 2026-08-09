@@ -16,20 +16,23 @@ import {
 const CELL_SIZE = 26;
 
 export function TetrisGame({
+  level = 1,
   onGameOver,
 }: {
+  level?: number;
   onGameOver: (score: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const speed = [600, 400, 250][Math.min(level, 3) - 1] ?? 600;
   const [state, setState] = useState<TetrisState>(() => createTetris());
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       setState((current) => (paused ? current : stepTetris(current)));
-    }, 500);
+    }, speed);
     return () => window.clearInterval(timer);
-  }, [paused]);
+  }, [paused, speed]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

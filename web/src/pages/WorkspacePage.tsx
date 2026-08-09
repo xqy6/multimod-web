@@ -133,7 +133,7 @@ export default function WorkspacePage() {
           <p className="mt-3 text-sm leading-6 text-mist-400">
             {user?.isDemo
               ? "当前为本地演示模式，项目保存在浏览器中。"
-              : "项目数据保存在 Supabase，仅自己可见。"}
+              : "项目数据保存在后端，仅自己可见。"}
           </p>
         </div>
 

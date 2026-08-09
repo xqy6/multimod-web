@@ -44,6 +44,90 @@
   --amber-300: #a9791f;
 }
 
+.font-playfair {
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.lithos-shell {
+  --mint-200: #ffd8c0;
+  --mint-300: #e8702a;
+  --mint-400: #d2611f;
+  --peach-200: #f6c39f;
+  --peach-300: #dd8f62;
+  --peach-400: #c9764c;
+  --lilac-200: #d8c9bd;
+  --lilac-300: #b99b88;
+  --lilac-400: #9f7f6c;
+  --amber-300: #f2b56b;
+}
+
+.lithos-shell h1,
+.lithos-shell h2 {
+  font-family: "Playfair Display", Georgia, "Times New Roman", "PingFang SC",
+    "Microsoft YaHei", serif;
+}
+
+@keyframes heroReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(28px);
+    filter: blur(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes heroFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroZoom {
+  0% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.hero-anim {
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-reveal {
+  animation-name: heroReveal;
+  animation-duration: 1.1s;
+}
+
+.hero-fade {
+  animation-name: heroFadeUp;
+  animation-duration: 1s;
+}
+
+.hero-zoom {
+  animation: heroZoom 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-anim,
+  .hero-zoom {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 @theme {
   --color-ink-950: var(--ink-950);
   --color-ink-900: var(--ink-900);

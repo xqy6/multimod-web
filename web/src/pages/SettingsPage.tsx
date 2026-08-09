@@ -3,12 +3,18 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { supabase } from "@/lib/supabase";
+import { shouldUseLocalBackend } from "@/lib/api";
+import {
+  profileAvatarUrl,
+  updateProfile,
+  uploadAvatar,
+} from "@/services/profile";
 import { useAuthStore } from "@/stores/auth";
 import { useToastStore } from "@/stores/toast";
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
   const signOut = useAuthStore((state) => state.signOut);
   const pushToast = useToastStore((state) => state.push);
   const [displayName, setDisplayName] = useState(user?.display_name ?? "");
@@ -20,65 +26,44 @@ export default function SettingsPage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const currentUser = user;
-    if (!currentUser) return;
-    if (currentUser.isDemo || !supabase) {
+    if (!user) return;
+    setDisplayName(user.display_name);
+    if (shouldUseLocalBackend()) {
       setAvatarUrl(localStorage.getItem("multimod-demo-avatar") ?? "");
       return;
     }
-    const client = supabase;
-    void client
-      .from("profiles")
-      .select("avatar_url")
-      .eq("id", currentUser.id)
-      .single()
-      .then(async ({ data }) => {
-        const path = (data as { avatar_url?: string } | null)?.avatar_url;
-        if (!path) return;
-        const { data: signed } = await client.storage
-          .from("project-assets")
-          .createSignedUrl(path, 3600);
-        if (signed?.signedUrl) setAvatarUrl(signed.signedUrl);
-      });
+    const url = profileAvatarUrl(user.id);
+    fetch(url, { method: "HEAD" })
+      .then((response) => {
+        if (response.ok) setAvatarUrl(url);
+      })
+      .catch(() => undefined);
   }, [user]);
 
   const handleAvatarUpload = async (file: File | undefined) => {
     if (!file || !user) return;
     setUploading(true);
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error("读取头像失败"));
-      reader.readAsDataURL(file);
-    });
-
-    if (!supabase || user.isDemo) {
-      localStorage.setItem("multimod-demo-avatar", dataUrl);
-      setAvatarUrl(dataUrl);
-      setUploading(false);
+    try {
+      if (shouldUseLocalBackend() || user.isDemo) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("读取头像失败"));
+          reader.readAsDataURL(file);
+        });
+        localStorage.setItem("multimod-demo-avatar", dataUrl);
+        setAvatarUrl(dataUrl);
+        pushToast("success", "头像已更新");
+        return;
+      }
+      const url = await uploadAvatar(file);
+      setAvatarUrl(url);
       pushToast("success", "头像已更新");
-      return;
-    }
-
-    const path = `${user.id}/avatar-${Date.now()}.png`;
-    const { error: uploadError } = await supabase.storage
-      .from("project-assets")
-      .upload(path, file, { upsert: true });
-    if (uploadError) {
+    } catch (uploadError) {
+      pushToast("error", (uploadError as Error).message);
+    } finally {
       setUploading(false);
-      pushToast("error", uploadError.message);
-      return;
     }
-    await supabase
-      .from("profiles")
-      .update({ avatar_url: path })
-      .eq("id", user.id);
-    const { data: signed } = await supabase.storage
-      .from("project-assets")
-      .createSignedUrl(path, 3600);
-    setAvatarUrl(signed?.signedUrl ?? dataUrl);
-    setUploading(false);
-    pushToast("success", "头像已更新");
   };
 
   const saveProfile = async (event: FormEvent) => {
@@ -86,26 +71,27 @@ export default function SettingsPage() {
     setMessage(null);
     setError(null);
     setSaving(true);
-
-    if (!user?.isDemo && supabase) {
-      const { error: authError } = await supabase.auth.updateUser({
-        data: { display_name: displayName },
-      });
-      if (authError) {
-        setError(authError.message);
-        setSaving(false);
+    try {
+      if (shouldUseLocalBackend() || user?.isDemo) {
+        localStorage.setItem(
+          "multimod-demo-profile",
+          JSON.stringify({ display_name: displayName }),
+        );
+        if (user) setUser({ ...user, display_name: displayName });
+        setMessage("资料已保存");
+        pushToast("success", "资料已保存");
         return;
       }
-    } else {
-      localStorage.setItem(
-        "multimod-demo-profile",
-        JSON.stringify({ display_name: displayName }),
-      );
+      await updateProfile(displayName);
+      if (user) setUser({ ...user, display_name: displayName });
+      setMessage("资料已保存");
+      pushToast("success", "资料已保存");
+    } catch (saveError) {
+      setError((saveError as Error).message);
+      pushToast("error", (saveError as Error).message);
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    setMessage("资料已保存");
-    pushToast("success", "资料已保存");
   };
 
   return (
@@ -114,6 +100,12 @@ export default function SettingsPage() {
         个人设置
       </p>
       <h1 className="mt-3 text-3xl font-bold sm:text-4xl">账号资料</h1>
+
+      {shouldUseLocalBackend() ? (
+        <p className="mt-5 rounded-xl bg-amber-300/10 px-4 py-3 text-sm text-amber-200 ring-1 ring-amber-300/20">
+          当前离线演示模式，资料只保存在本地浏览器。
+        </p>
+      ) : null}
 
       <form
         onSubmit={saveProfile}
@@ -200,13 +192,6 @@ export default function SettingsPage() {
           </Button>
         </div>
       </form>
-
-      {user?.isDemo ? (
-        <p className="mt-5 rounded-xl bg-amber-300/10 px-4 py-3 text-sm text-amber-200 ring-1 ring-amber-300/20">
-          当前为本地演示模式，资料仅保存在浏览器。配置 Supabase
-          后才会写入数据库。
-        </p>
-      ) : null}
     </div>
   );
 }

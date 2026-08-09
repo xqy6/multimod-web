@@ -14,7 +14,11 @@ export function Toast() {
   const remove = useToastStore((state) => state.remove);
 
   return (
-    <div className="pointer-events-none fixed bottom-6 right-6 z-[100] flex w-full max-w-sm flex-col gap-2 px-4">
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed bottom-6 right-6 z-[100] flex w-full max-w-sm flex-col gap-2 px-4"
+    >
       <AnimatePresence>
         {toasts.map((toast) => {
           const Icon = icons[toast.type];

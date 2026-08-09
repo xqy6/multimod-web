@@ -42,20 +42,31 @@ import {
   deleteFolder,
   deleteShare,
   downloadFile,
+  downloadFolder,
   listShares,
   listTrash,
   listFolder,
   purgeTrash,
+  removeResumableUpload,
   renameFile,
   renameFolder,
   restoreTrash,
   uploadFileWithProgress,
+  uploadFileWithResume,
+  RESUME_CHUNK_SIZE,
   type NetdiskFile,
   type NetdiskFolder,
   type NetdiskListing,
   type ShareItem,
   type TrashItem,
 } from "@/services/netdisk";
+import {
+  flushOfflineQueue,
+  listOfflineUploads,
+  queueOfflineUpload,
+  removeOfflineUpload,
+  type OfflineUpload,
+} from "@/services/offlineQueue";
 import { useToastStore } from "@/stores/toast";
 
 type Category = "all" | "image" | "document" | "video" | "audio";
@@ -66,6 +77,11 @@ interface UploadTask {
   id: string;
   name: string;
   progress: number;
+  status: "uploading" | "error" | "paused";
+  uploadPath?: string;
+  resumeKey?: string;
+  file?: File;
+  error?: string;
 }
 
 function formatSize(size: number): string {
@@ -130,6 +146,12 @@ export default function NetdiskPage() {
   } | null>(null);
   const [shareToken, setShareToken] = useState("");
   const [shares, setShares] = useState<ShareItem[]>([]);
+  const [offlineQueue, setOfflineQueue] = useState<OfflineUpload[]>([]);
+  const [offlineQueueOpen, setOfflineQueueOpen] = useState(false);
+  const [queueProgress, setQueueProgress] = useState<Record<string, number>>(
+    {},
+  );
+  const [flushing, setFlushing] = useState(false);
 
   const load = useCallback(async (targetPath: string) => {
     setLoading(true);
@@ -142,6 +164,32 @@ export default function NetdiskPage() {
       setLoading(false);
     }
   }, []);
+
+  const refreshOfflineQueue = useCallback(async () => {
+    try {
+      setOfflineQueue(await listOfflineUploads());
+    } catch {
+      setOfflineQueue([]);
+    }
+  }, []);
+
+  const flushQueue = useCallback(async () => {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return;
+    }
+    setFlushing(true);
+    const result = await flushOfflineQueue((id, percent) => {
+      setQueueProgress((current) => ({ ...current, [id]: percent }));
+    }).finally(() => setFlushing(false));
+    setQueueProgress({});
+    await refreshOfflineQueue();
+    if (result.uploaded > 0) {
+      pushToast("success", `已自动上传 ${result.uploaded} 个离线文件`);
+    }
+    if (result.failed > 0) {
+      pushToast("error", `${result.failed} 个离线文件上传失败，可重试`);
+    }
+  }, [pushToast, refreshOfflineQueue]);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,6 +208,13 @@ export default function NetdiskPage() {
   useEffect(() => {
     void load(path);
   }, [load, path]);
+
+  useEffect(() => {
+    void refreshOfflineQueue();
+    const onOnline = () => void flushQueue();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [flushQueue, refreshOfflineQueue]);
 
   const segments = useMemo(() => path.split("/").filter(Boolean), [path]);
   const folders = useMemo(() => listing?.folders ?? [], [listing]);
@@ -266,39 +321,138 @@ export default function NetdiskPage() {
     }
   };
 
-  const uploadFiles = async (filesToUpload: File[]) => {
-    const tasks = filesToUpload.map((file) => ({
-      id: crypto.randomUUID(),
-      name: file.name,
-      progress: 0,
-    }));
-    setUploads((current) => [...current, ...tasks]);
+  const handleDownloadFolder = async (folder: NetdiskFolder) => {
+    try {
+      const { blob, fileName } = await downloadFolder(folder);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      pushToast("success", "文件夹已打包，开始下载");
+    } catch (downloadError) {
+      pushToast("error", (downloadError as Error).message);
+    }
+  };
 
-    await Promise.all(
-      tasks.map(async (task, index) => {
-        try {
-          await uploadFileWithProgress(
-            path,
-            filesToUpload[index],
-            (percent) => {
-              setUploads((current) =>
-                current.map((item) =>
-                  item.id === task.id ? { ...item, progress: percent } : item,
-                ),
-              );
-            },
-          );
-          pushToast("success", `上传完成：${task.name}`);
-        } catch (uploadError) {
-          pushToast("error", (uploadError as Error).message);
-        } finally {
-          setUploads((current) =>
-            current.filter((item) => item.id !== task.id),
-          );
-          await load(path);
-        }
-      }),
+  const uploadOneFile = async (task: UploadTask) => {
+    if (!task.file) return;
+    const targetPath = task.uploadPath ?? path;
+    setUploads((current) =>
+      current.map((item) =>
+        item.id === task.id
+          ? { ...item, status: "uploading", error: undefined }
+          : item,
+      ),
     );
+    try {
+      if (task.resumeKey) {
+        await uploadFileWithResume(targetPath, task.file, (percent) => {
+          setUploads((current) =>
+            current.map((item) =>
+              item.id === task.id ? { ...item, progress: percent } : item,
+            ),
+          );
+        });
+      } else {
+        await uploadFileWithProgress(targetPath, task.file, (percent) => {
+          setUploads((current) =>
+            current.map((item) =>
+              item.id === task.id ? { ...item, progress: percent } : item,
+            ),
+          );
+        });
+      }
+      setUploads((current) => current.filter((item) => item.id !== task.id));
+      pushToast("success", `上传完成：${task.name}`);
+      await load(path);
+    } catch (uploadError) {
+      setUploads((current) =>
+        current.map((item) =>
+          item.id === task.id
+            ? {
+                ...item,
+                status: "error",
+                error: (uploadError as Error).message,
+              }
+            : item,
+        ),
+      );
+      pushToast("error", (uploadError as Error).message);
+    }
+  };
+
+  const uploadFiles = async (filesToUpload: File[]) => {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      for (const file of filesToUpload) {
+        try {
+          await queueOfflineUpload(file, path);
+        } catch (queueError) {
+          pushToast("error", (queueError as Error).message);
+          return;
+        }
+      }
+      await refreshOfflineQueue();
+      pushToast("success", `${filesToUpload.length} 个文件已加入离线队列`);
+      return;
+    }
+
+    const tasks = filesToUpload.map((file) => {
+      const useResume = file.size >= RESUME_CHUNK_SIZE;
+      const id = useResume
+        ? `${path}|${file.name}|${file.size}`
+        : crypto.randomUUID();
+      return {
+        id,
+        name: file.name,
+        progress: 0,
+        status: "uploading" as const,
+        uploadPath: path,
+        resumeKey: useResume ? id : undefined,
+        file,
+      };
+    });
+    setUploads((current) => {
+      const next = [...current];
+      for (const task of tasks) {
+        const index = next.findIndex((item) => item.id === task.id);
+        if (index >= 0) {
+          next[index] = {
+            ...next[index],
+            status: "uploading",
+            error: undefined,
+            file: task.file,
+            uploadPath: path,
+          };
+        } else {
+          next.push(task);
+        }
+      }
+      return next;
+    });
+
+    for (const task of tasks) {
+      await uploadOneFile(task);
+    }
+  };
+
+  const handleRetryUpload = (task: UploadTask) => {
+    void uploadOneFile(task);
+  };
+
+  const handleRemoveUpload = (task: UploadTask) => {
+    if (task.resumeKey) removeResumableUpload(task.resumeKey);
+    setUploads((current) => current.filter((item) => item.id !== task.id));
+  };
+
+  const handleRemoveOffline = async (id: string) => {
+    try {
+      await removeOfflineUpload(id);
+      await refreshOfflineQueue();
+    } catch (removeError) {
+      pushToast("error", (removeError as Error).message);
+    }
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
@@ -435,6 +589,17 @@ export default function NetdiskPage() {
             </span>
           ) : null}
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setOfflineQueueOpen(true)}
+          >
+            <Upload className="h-4 w-4" aria-hidden="true" />
+            离线队列
+            {offlineQueue.length > 0 ? ` (${offlineQueue.length})` : ""}
+          </Button>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[220px_1fr]">
@@ -487,6 +652,13 @@ export default function NetdiskPage() {
             dragging ? "border-mint-300/60 bg-mint-300/5" : "border-white/10"
           }`}
         >
+          {dragging ? (
+            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-panel bg-mint-300/10 backdrop-blur-sm">
+              <p className="rounded-full bg-mint-300 px-5 py-2.5 text-sm font-bold text-ink-950">
+                释放文件开始上传
+              </p>
+            </div>
+          ) : null}
           {mode === "files" ? (
             <div className="flex flex-col gap-3 border-b border-white/10 p-4">
               <nav className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm">
@@ -734,17 +906,65 @@ export default function NetdiskPage() {
               {uploads.length > 0 ? (
                 <div className="space-y-2 border-b border-white/10 px-4 py-3">
                   {uploads.map((task) => (
-                    <div key={task.id}>
-                      <div className="flex justify-between text-xs text-mist-300">
+                    <div
+                      key={task.id}
+                      className="rounded-xl border border-white/10 bg-white/[0.02] p-3"
+                    >
+                      <div className="flex items-center justify-between gap-3 text-xs text-mist-300">
                         <span className="truncate">{task.name}</span>
-                        <span>{task.progress}%</span>
+                        <span className="flex shrink-0 items-center gap-2">
+                          <span
+                            className={
+                              task.status === "error"
+                                ? "text-red-200"
+                                : "text-mint-200"
+                            }
+                          >
+                            {task.status === "error"
+                              ? "失败"
+                              : task.status === "uploading"
+                                ? `${task.progress}%`
+                                : "已暂停"}
+                          </span>
+                          {task.status === "error" ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleRetryUpload(task)}
+                                className="flex h-7 items-center gap-1 rounded-full bg-white/5 px-2.5 text-xs text-mist-200 ring-1 ring-white/10 hover:text-mint-200"
+                                aria-label={`重试上传 ${task.name}`}
+                              >
+                                <RefreshCw
+                                  className="h-3.5 w-3.5"
+                                  aria-hidden="true"
+                                />
+                                重试
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveUpload(task)}
+                                className="flex h-7 w-7 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
+                                aria-label={`移除上传任务 ${task.name}`}
+                              >
+                                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
+                            </>
+                          ) : null}
+                        </span>
                       </div>
-                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className="h-full rounded-full bg-mint-300 transition-all"
-                          style={{ width: `${task.progress}%` }}
-                        />
-                      </div>
+                      {task.status === "error" && task.error ? (
+                        <p className="mt-1 text-xs text-red-200">
+                          {task.error}
+                        </p>
+                      ) : null}
+                      {task.status === "uploading" ? (
+                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className="h-full rounded-full bg-mint-300 transition-all"
+                            style={{ width: `${task.progress}%` }}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -802,6 +1022,14 @@ export default function NetdiskPage() {
                           aria-label={`分享文件夹 ${folder.name}`}
                         >
                           <Share2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDownloadFolder(folder)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`下载文件夹 ${folder.name}`}
+                        >
+                          <Download className="h-4 w-4" aria-hidden="true" />
                         </button>
                         <button
                           type="button"
@@ -944,6 +1172,14 @@ export default function NetdiskPage() {
                         </button>
                         <button
                           type="button"
+                          onClick={() => void handleDownloadFolder(folder)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-white/5 hover:text-mint-300"
+                          aria-label={`下载文件夹 ${folder.name}`}
+                        >
+                          <Download className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => {
                             setEditing({
                               kind: "folder",
@@ -1048,6 +1284,118 @@ export default function NetdiskPage() {
           )}
         </section>
       </div>
+
+      {offlineQueueOpen ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-panel border border-white/10 bg-ink-900 p-6 shadow-soft">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-mist-100">
+                  离线上传队列
+                </h2>
+                <p className="mt-1 text-sm text-mist-400">
+                  {offlineQueue.length} 个文件等待上传
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOfflineQueueOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-mist-300 hover:text-mist-100"
+                aria-label="关闭离线队列"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <Button
+                size="sm"
+                disabled={flushing || offlineQueue.length === 0}
+                onClick={() => void flushQueue()}
+              >
+                {flushing ? (
+                  <Loader2
+                    className="h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Upload className="h-4 w-4" aria-hidden="true" />
+                )}
+                {flushing ? "上传中" : "立即上传"}
+              </Button>
+              {typeof navigator !== "undefined" &&
+              navigator.onLine === false ? (
+                <span className="text-xs text-amber-200">
+                  当前离线，联网后会自动上传
+                </span>
+              ) : null}
+            </div>
+
+            <div className="mt-4 flex-1 space-y-2 overflow-y-auto">
+              {offlineQueue.length === 0 ? (
+                <p className="py-12 text-center text-sm text-mist-500">
+                  暂无离线文件
+                </p>
+              ) : (
+                offlineQueue.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-xl border border-white/10 bg-white/[0.02] p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-mist-100">
+                          {item.name}
+                        </p>
+                        <p className="mt-1 text-xs text-mist-500">
+                          {formatSize(item.size)} · {item.path}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs ${
+                            item.status === "error"
+                              ? "bg-red-400/10 text-red-200"
+                              : item.status === "uploading"
+                                ? "bg-mint-300/10 text-mint-200"
+                                : "bg-white/5 text-mist-300"
+                          }`}
+                        >
+                          {item.status === "error"
+                            ? "失败"
+                            : item.status === "uploading"
+                              ? "上传中"
+                              : "待上传"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void handleRemoveOffline(item.id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-mist-500 hover:bg-red-400/10 hover:text-red-200"
+                          aria-label={`删除离线文件 ${item.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                    {item.status === "uploading" &&
+                    queueProgress[item.id] !== undefined ? (
+                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-mint-300 transition-all"
+                          style={{ width: `${queueProgress[item.id]}%` }}
+                        />
+                      </div>
+                    ) : null}
+                    {item.status === "error" && item.error ? (
+                      <p className="mt-2 text-xs text-red-200">{item.error}</p>
+                    ) : null}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {shareModal ? (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">

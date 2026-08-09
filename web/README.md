@@ -9,36 +9,30 @@ pnpm dev
 
 ## 环境变量
 
-复制 `.env.example` 为 `.env.local`，填入 Supabase 项目地址与匿名 Key。
+复制 `.env.example` 为 `.env.local`，填写 Railway 后端地址：
 
-缺少环境变量时应用仍可启动，账号与工作台会进入本地演示模式，项目保存在浏览器中。
+```text
+VITE_NETDISK_URL=https://your-railway-app.up.railway.app
+VITE_PROXY_URL=
+```
 
-## 初始化 Supabase
-
-1. 在 Supabase 创建项目。
-2. 打开 SQL Editor，执行 `supabase/migrations/202608080001_init.sql`。
-3. 在项目设置中复制 Project URL 与 anon key，填入 `.env.local`。
-4. 重新启动开发服务器，演示模式会自动切换为真实登录。
+缺少环境变量时应用仍可启动，账号、项目、聊天、素材与排行榜会进入本地演示模式。
 
 ## 脚本
 
 - `pnpm dev`：开发服务器
 - `pnpm test`：运行测试
+- `pnpm lint`：ESLint 检查
 - `pnpm build`：类型检查与生产构建
 - `pnpm preview`：预览生产构建
 
 ## 已交付模块
 
-- M0：Vite + React + TypeScript + Tailwind CSS v4 + Framer Motion 工程骨架。
-- M1：品牌首页，包含用户视频、CC0 动漫背景素材与完整模块结构。
-- M2：Supabase 登录、个人工作台、项目创建/删除/重命名，未配置时自动进入本地演示模式。
-- M3：网站生成器，支持 vibe 风格解析、模块选择、图片/文字素材上传、实时预览与 ZIP 导出。
-- M4：小游戏中心，包含 2048、贪吃蛇、俄罗斯方块，支持键盘/触控与排行榜。
-- M5：内置浏览器，支持多标签、历史、书签、搜索与受限站点提示。
-- M6：实时聊天室，支持多房间、消息持久化、在线状态与本地演示模式。
-- M7：Vercel SPA 配置、CI 工作流与上线文档。
-- 增强：PWA 离线缓存、路由懒加载、在线/离线状态提示。
-- 增强：内置浏览器代理模式与系统浏览器兜底打开。
-- 优化：图片懒加载、视频海报、JSZip 按需加载、浏览器前进后退、工作台搜索筛选重命名、Toast/错误边界、聊天删除与输入提示、头像上传、SEO。
-- 网盘：`/netdisk` 百度网盘风格文件管理，支持分类、网格/列表、拖拽上传、重命名、搜索、批量删除、回收站、分享链接与分享落地页。
-- 工程：ESLint + Prettier、Supabase 全量类型、共享类型 `src/shared/`、亮/暗主题、聊天未读数。
+- M1：品牌首页，MotionSites 深色玻璃拟态视觉
+- M2：账号与工作台，Railway 后端登录、注册、项目创建/删除/重命名
+- M3：网站生成器，vibe 风格解析、模块选择、图片/文字素材、实时预览与 ZIP 导出
+- M4：小游戏中心，2048、贪吃蛇、俄罗斯方块与排行榜
+- M5：内置浏览器，多标签、历史、书签、搜索与受限站点提示
+- M6：实时聊天室，多房间、消息持久化、在线状态、未读与正在输入
+- M7：网盘，百度网盘风格文件管理、回收站与分享
+- 增强：PWA、路由懒加载、亮/暗主题、ESLint + Prettier、Toast 与错误边界

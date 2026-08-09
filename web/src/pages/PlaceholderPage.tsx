@@ -12,7 +12,7 @@ export default function PlaceholderPage({
   description,
 }: PlaceholderPageProps) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-ink-950 px-6 text-center text-mist-100">
+    <main className="lithos-shell flex min-h-screen flex-col items-center justify-center bg-ink-950 px-6 text-center text-mist-100">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-mint-300">
         多功能 Web 平台
       </p>

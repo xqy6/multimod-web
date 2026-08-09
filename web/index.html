@@ -9,14 +9,147 @@
     />
     <meta name="theme-color" content="#0a0b10" />
     <link rel="icon" type="image/png" href="%BASE_URL%icons/icon-192.png" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #0a0b10;
+        color: #f4f5f8;
+      }
+      .hero,
+      .echo-hero {
+        position: relative;
+        min-height: 100vh;
+        overflow: hidden;
+        background: #000;
+        color: #fff;
+      }
+      .hero > video,
+      .hero video,
+      .echo-hero__media video {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .hero video {
+        position: absolute;
+        top: 80px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: auto;
+      }
+      .hero__head {
+        position: absolute;
+        top: 18%;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        text-align: center;
+        padding: 0 20px;
+      }
+      .hero__head h1 {
+        font-size: 36px;
+        line-height: 1.1;
+        margin: 20px 0 0;
+      }
+      .hero__head p {
+        font-size: 15px;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .hero__left {
+        position: absolute;
+        bottom: 56px;
+        left: 20px;
+        z-index: 5;
+        max-width: 280px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .hero__right {
+        position: absolute;
+        bottom: 40px;
+        right: 20px;
+        z-index: 5;
+        max-width: 280px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .hero__sound {
+        position: absolute;
+        bottom: 130px;
+        right: 20px;
+        z-index: 5;
+      }
+      .hero__scroll {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 5;
+      }
+      .echo-hero__media {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background: #000;
+      }
+      .echo-hero__media video {
+        position: absolute;
+        inset: 0;
+      }
+      .echo-nav {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+      }
+      .echo-hero__body {
+        position: relative;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        padding: 20px;
+      }
+      .echo-panel {
+        width: 100%;
+        max-width: 520px;
+      }
+      .echo-legal {
+        position: relative;
+        z-index: 5;
+        text-align: center;
+        padding: 18px 20px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.62);
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://d8j0ntlcm91z4.cloudfront.net" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400&family=JetBrains+Mono:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="多功能 Web 平台" />
     <meta
       property="og:description"
       content="AI 建站生成、小游戏中心、内置浏览器与实时聊天室"
     />
-    <meta property="og:image" content="%BASE_URL%icons/icon-512.png" />
+    <meta property="og:image" content="%BASE_URL%og-cover.png" />
+    <meta property="og:video" content="%BASE_URL%assets/og-cover.mp4" />
+    <meta property="og:video:type" content="video/mp4" />
+    <meta property="og:video:width" content="960" />
+    <meta property="og:video:height" content="720" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="%BASE_URL%og-cover.png" />
     <meta name="twitter:title" content="多功能 Web 平台" />
     <meta
       name="twitter:description"

@@ -48,6 +48,7 @@ export interface ChatMember {
   display_name?: string;
   role: "member" | "admin";
   joined_at: string;
+  last_read_at?: string | null;
   typing?: boolean;
 }
 

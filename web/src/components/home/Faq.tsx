@@ -18,17 +18,17 @@ const faqItems = [
   {
     question: "聊天室需要自己准备服务器吗？",
     answer:
-      "不需要。聊天室基于 Supabase Realtime，账号、消息持久化和在线状态都由托管服务提供。",
+      "不需要。聊天室基于后端实时接口，账号、消息持久化和在线状态都由托管服务提供。",
   },
   {
     question: "上传的图片和文字素材存储在哪里？",
     answer:
-      "图片存储在 Supabase Storage，文字素材存储在项目记录中；每条数据都受 RLS 权限策略保护。",
+      "图片存储在后端对象存储，文字素材存储在项目记录中；每条数据都按账号隔离。",
   },
   {
     question: "我需要准备哪些账号？",
     answer:
-      "本地开发只需 Vercel 与 Supabase 两个免费账号。Vercel 托管前端，Supabase 提供数据库、认证、实时消息与存储。",
+      "线上部署只需 Cloudflare 与 Railway 两个免费账号。Cloudflare 托管前端，Railway 提供数据库、认证、实时消息与存储。",
   },
 ];
 

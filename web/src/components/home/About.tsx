@@ -53,7 +53,7 @@ export function About() {
 
           <div className="mt-8 flex items-center gap-3 text-sm text-mist-400">
             <ShieldCheck className="h-4 w-4 text-mint-300" aria-hidden="true" />
-            数据与素材统一存储在 Supabase，权限策略按表隔离。
+            数据与素材统一存储在 Railway 后端，权限策略按账号隔离。
           </div>
 
           <ButtonLink href="#modules" variant="ghost" className="mt-8">

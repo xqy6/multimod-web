@@ -1,4 +1,4 @@
-const base = "http://127.0.0.1:4000";
+const base = process.env.SMOKE_BASE || "http://127.0.0.1:4000";
 const suffix = Date.now().toString(36);
 
 async function request(path, options = {}) {
@@ -20,13 +20,105 @@ function authHeaders(token) {
   return { Authorization: `Bearer ${token}` };
 }
 
-const username = `smoke-${suffix}`;
+const email = `smoke-${suffix}@test.dev`;
 const registered = await request("/api/auth/register", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ username, password: "test1234" }),
+  body: JSON.stringify({ email, password: "test1234", displayName: "Smoke" }),
 });
 const token = registered.token;
+
+const project = await request("/api/projects", {
+  method: "POST",
+  headers: { ...authHeaders(token), "Content-Type": "application/json" },
+  body: JSON.stringify({ title: "smoke-project", modules: ["hero", "chat"] }),
+});
+if (!project.data.id) throw new Error("project create mismatch");
+
+const textAsset = await request(
+  `/api/projects/${project.data.id}/assets/text`,
+  {
+    method: "POST",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "copy", content: "hello" }),
+  },
+);
+if (textAsset.data.kind !== "text") throw new Error("asset create mismatch");
+
+const room = await request("/api/rooms", {
+  method: "POST",
+  headers: { ...authHeaders(token), "Content-Type": "application/json" },
+  body: JSON.stringify({ name: "smoke-room" }),
+});
+const message = await request(`/api/rooms/${room.data.id}/messages`, {
+  method: "POST",
+  headers: { ...authHeaders(token), "Content-Type": "application/json" },
+  body: JSON.stringify({ body: "hello chat" }),
+});
+if (message.data.body !== "hello chat") throw new Error("message mismatch");
+
+const unread = await request("/api/unread", { headers: authHeaders(token) });
+if (unread.data[room.data.id] !== 1) throw new Error("unread mismatch");
+
+await request("/api/scores", {
+  method: "POST",
+  headers: { ...authHeaders(token), "Content-Type": "application/json" },
+  body: JSON.stringify({ game_id: "2048", score: 42 }),
+});
+await request("/api/scores", {
+  method: "POST",
+  headers: { ...authHeaders(token), "Content-Type": "application/json" },
+  body: JSON.stringify({ game_id: "2048", score: 10 }),
+});
+const leaderboard = await request("/api/scores/leaderboard?game_id=2048", {
+  headers: authHeaders(token),
+});
+const myLeaderboardEntries = leaderboard.data.filter(
+  (entry) => entry.user_id === registered.user.id,
+);
+if (myLeaderboardEntries.length !== 1 || myLeaderboardEntries[0].score !== 42) {
+  throw new Error("leaderboard mismatch");
+}
+
+await request("/api/profile", {
+  method: "PUT",
+  headers: { ...authHeaders(token), "Content-Type": "application/json" },
+  body: JSON.stringify({ displayName: "Smoke Updated" }),
+});
+
+const adminLogin = await request("/api/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email: "admin@local", password: "xieqiyan66" }),
+});
+if (!adminLogin.user.isAdmin) throw new Error("admin role mismatch");
+const adminHeaders = authHeaders(adminLogin.token);
+const stats = await request("/api/admin/stats", {
+  headers: adminHeaders,
+});
+if (!stats.data.users) throw new Error("admin stats mismatch");
+const adminUsers = await request("/api/admin/users", {
+  headers: adminHeaders,
+});
+if (!adminUsers.data.some((user) => user.email === email)) {
+  throw new Error("admin user list mismatch");
+}
+
+const lanHealth = await request("/lan/health");
+if (!lanHealth.ok) throw new Error("lan health mismatch");
+const lanIp = await request("/lan/ip");
+if (lanIp.addresses.length === 0) throw new Error("lan ip mismatch");
+const lanRoom = await request("/lan/rooms", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ name: "lan-smoke" }),
+});
+const lanMessage = await request(`/lan/rooms/${lanRoom.data.id}/messages`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ nickname: "Lan", body: "hello lan" }),
+});
+if (lanMessage.data.body !== "hello lan") throw new Error("lan message mismatch");
 
 const folderName = `folder-${suffix}`;
 await request(`/api/folders?path=/`, {
@@ -134,4 +226,6 @@ await request(`/api/folders?path=/${folderName}`, {
   headers: authHeaders(token),
 });
 
-console.log("smoke ok: auth, folder, upload, rename, download, chunks, trash");
+console.log(
+  "smoke ok: auth, admin, lan, profile, projects, assets, chat, scores, folder, upload, rename, download, chunks, trash",
+);

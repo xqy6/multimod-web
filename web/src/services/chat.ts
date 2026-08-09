@@ -1,6 +1,6 @@
 import type { ChatMember, ChatMessage, ChatRoom } from "@shared";
 
-import { supabase } from "@/lib/supabase";
+import { apiRequest, eventSourceUrl, shouldUseLocalBackend } from "@/lib/api";
 
 export type { ChatMember, ChatMessage, ChatRoom };
 
@@ -84,8 +84,31 @@ function broadcastTyping(roomId: string) {
   }
 }
 
+function subscribeSse<T>(
+  roomId: string,
+  event: string,
+  callback: (payload: T) => void,
+): () => void {
+  if (typeof EventSource === "undefined") return () => undefined;
+  const source = new EventSource(eventSourceUrl(`/api/rooms/${roomId}/events`));
+  source.addEventListener(event, (eventObject) => {
+    try {
+      callback(JSON.parse((eventObject as MessageEvent).data) as T);
+    } catch {
+      // ignore malformed event payloads
+    }
+  });
+  return () => source.close();
+}
+
 export function setTyping(roomId: string, userId: string, displayName: string) {
-  if (supabase) return;
+  if (!shouldUseLocalBackend()) {
+    void apiRequest(`/api/rooms/${roomId}/typing`, {
+      method: "POST",
+      body: { typing: true },
+    }).catch(() => undefined);
+    return;
+  }
   const all = read<{
     room_id: string;
     user_id: string;
@@ -107,7 +130,9 @@ export function subscribeTyping(
   roomId: string,
   callback: (users: ChatMember[]) => void,
 ): () => void {
-  if (supabase) return () => undefined;
+  if (!shouldUseLocalBackend()) {
+    return subscribeSse<ChatMember[]>(roomId, "typing", callback);
+  }
   const emit = () => {
     const all = read<{
       room_id: string;
@@ -149,7 +174,7 @@ export async function listRooms(): Promise<{
   data: ChatRoom[];
   error: string | null;
 }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const members = read<ChatMember>(MEMBERS_KEY);
     const rooms = read<ChatRoom>(ROOMS_KEY).map((room) => ({
       ...room,
@@ -158,30 +183,19 @@ export async function listRooms(): Promise<{
     }));
     return { data: rooms, error: null };
   }
-  const { data, error } = await supabase
-    .from("rooms")
-    .select("id, name, slug, created_by, created_at, room_members(count)")
-    .order("created_at", { ascending: false });
-  const rows = (data as Array<Record<string, unknown>> | null) ?? [];
-  const rooms: ChatRoom[] = rows.map((row) => ({
-    id: String(row.id),
-    name: String(row.name),
-    slug: row.slug === null ? null : String(row.slug),
-    created_by: String(row.created_by),
-    created_at: String(row.created_at),
-    member_count: Number(
-      (row.room_members as Array<{ count: number }> | undefined)?.[0]?.count ??
-        0,
-    ),
-  }));
-  return { data: rooms, error: error?.message ?? null };
+  try {
+    const { data } = await apiRequest<{ data: ChatRoom[] }>("/api/rooms");
+    return { data, error: null };
+  } catch (error) {
+    return { data: [], error: (error as Error).message };
+  }
 }
 
 export async function createRoom(
   name: string,
   userId: string,
 ): Promise<{ data: ChatRoom | null; error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const room: ChatRoom = {
       id: crypto.randomUUID(),
       name,
@@ -204,30 +218,22 @@ export async function createRoom(
     broadcast(room.id);
     return { data: room, error: null };
   }
-  const { data: roomData, error: roomError } = await supabase
-    .from("rooms")
-    .insert({ name, created_by: userId })
-    .select()
-    .single();
-  if (roomError || !roomData) {
-    return { data: null, error: roomError?.message ?? "创建房间失败" };
+  try {
+    const { data } = await apiRequest<{ data: ChatRoom }>("/api/rooms", {
+      method: "POST",
+      body: { name },
+    });
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error: (error as Error).message };
   }
-  await supabase.from("room_members").insert({
-    room_id: roomData.id,
-    user_id: userId,
-    role: "admin",
-  });
-  return {
-    data: roomData,
-    error: null,
-  };
 }
 
 export async function joinRoom(
   roomId: string,
   userId: string,
 ): Promise<{ error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const members = read<ChatMember>(MEMBERS_KEY);
     if (
       !members.some(
@@ -245,22 +251,19 @@ export async function joinRoom(
     broadcast(roomId);
     return { error: null };
   }
-  const { error } = await supabase.from("room_members").upsert(
-    {
-      room_id: roomId,
-      user_id: userId,
-      role: "member",
-    },
-    { onConflict: "room_id,user_id" },
-  );
-  return { error: error?.message ?? null };
+  try {
+    await apiRequest(`/api/rooms/${roomId}/join`, { method: "POST" });
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }
 
 export async function leaveRoom(
   roomId: string,
   userId: string,
 ): Promise<{ error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     write(
       MEMBERS_KEY,
       read<ChatMember>(MEMBERS_KEY).filter(
@@ -270,18 +273,18 @@ export async function leaveRoom(
     broadcast(roomId);
     return { error: null };
   }
-  const { error } = await supabase
-    .from("room_members")
-    .delete()
-    .eq("room_id", roomId)
-    .eq("user_id", userId);
-  return { error: error?.message ?? null };
+  try {
+    await apiRequest(`/api/rooms/${roomId}/leave`, { method: "POST" });
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }
 
 export async function listMembers(
   roomId: string,
 ): Promise<{ data: ChatMember[]; error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const members = read<ChatMember>(MEMBERS_KEY)
       .filter((member) => member.room_id === roomId)
       .map((member) => ({
@@ -290,50 +293,219 @@ export async function listMembers(
       }));
     return { data: members, error: null };
   }
-  const { data, error } = await supabase
-    .from("room_members")
-    .select("room_id, user_id, role, joined_at, profiles(display_name)")
-    .eq("room_id", roomId);
-  const rows = (data as Array<Record<string, unknown>> | null) ?? [];
-  const members: ChatMember[] = rows.map((row) => ({
-    room_id: String(row.room_id),
-    user_id: String(row.user_id),
-    role: row.role === "admin" ? "admin" : "member",
-    joined_at: String(row.joined_at),
-    display_name: String(
-      (row.profiles as { display_name?: string } | null)?.display_name ?? "",
-    ),
-  }));
-  return { data: members, error: error?.message ?? null };
+  try {
+    const { data } = await apiRequest<{ data: ChatMember[] }>(
+      `/api/rooms/${roomId}/members`,
+    );
+    return { data, error: null };
+  } catch (error) {
+    return { data: [], error: (error as Error).message };
+  }
 }
 
 export async function listMessages(
   roomId: string,
+  before?: string,
 ): Promise<{ data: ChatMessage[]; error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     return {
       data: read<ChatMessage>(messagesKey(roomId)),
       error: null,
     };
   }
-  const { data, error } = await supabase
-    .from("messages")
-    .select("id, room_id, user_id, body, created_at, profiles(display_name)")
-    .eq("room_id", roomId)
-    .order("created_at", { ascending: true })
-    .limit(200);
-  const rows = (data as Array<Record<string, unknown>> | null) ?? [];
-  const messages: ChatMessage[] = rows.map((row) => ({
-    id: String(row.id),
-    room_id: String(row.room_id),
-    user_id: String(row.user_id),
-    body: String(row.body),
-    created_at: String(row.created_at),
-    display_name: String(
-      (row.profiles as { display_name?: string } | null)?.display_name ?? "",
-    ),
-  }));
-  return { data: messages, error: error?.message ?? null };
+  try {
+    const query = before ? `?before=${encodeURIComponent(before)}` : "";
+    const { data } = await apiRequest<{ data: ChatMessage[] }>(
+      `/api/rooms/${roomId}/messages${query}`,
+    );
+    return { data, error: null };
+  } catch (error) {
+    return { data: [], error: (error as Error).message };
+  }
+}
+
+async function listAllMessages(roomId: string): Promise<ChatMessage[]> {
+  const all: ChatMessage[] = [];
+  let before: string | undefined;
+  for (let guard = 0; guard < 50; guard += 1) {
+    const result = await listMessages(roomId, before);
+    if (result.error) throw new Error(result.error);
+    const page = result.data ?? [];
+    all.unshift(...page);
+    if (page.length < 200) break;
+    before = all[0]?.created_at;
+  }
+  return all;
+}
+
+export async function searchMessages(
+  roomId: string,
+  query: string,
+): Promise<{ data: ChatMessage[]; error: string | null }> {
+  const term = query.trim().toLowerCase();
+  if (!term) return { data: [], error: null };
+  if (shouldUseLocalBackend()) {
+    const all = read<ChatMessage>(messagesKey(roomId));
+    const matches = all
+      .filter(
+        (message) =>
+          message.body.toLowerCase().includes(term) ||
+          (message.display_name ?? "").toLowerCase().includes(term),
+      )
+      .slice(-50);
+    return { data: matches, error: null };
+  }
+  try {
+    const { data } = await apiRequest<{ data: ChatMessage[] }>(
+      `/api/rooms/${roomId}/search?q=${encodeURIComponent(query.trim())}`,
+    );
+    return { data, error: null };
+  } catch {
+    try {
+      const all = await listAllMessages(roomId);
+      const matches = all
+        .filter(
+          (message) =>
+            message.body.toLowerCase().includes(term) ||
+            (message.display_name ?? "").toLowerCase().includes(term),
+        )
+        .slice(-50);
+      return { data: matches, error: null };
+    } catch (fallbackError) {
+      return { data: [], error: (fallbackError as Error).message };
+    }
+  }
+}
+
+export async function getMessageContext(
+  roomId: string,
+  messageId: string,
+): Promise<{
+  target: ChatMessage | null;
+  before: ChatMessage[];
+  after: ChatMessage[];
+  error: string | null;
+}> {
+  if (shouldUseLocalBackend()) {
+    const all = read<ChatMessage>(messagesKey(roomId));
+    const index = all.findIndex((message) => message.id === messageId);
+    if (index < 0) return { target: null, before: [], after: [], error: null };
+    return {
+      target: all[index],
+      before: all.slice(Math.max(0, index - 40), index),
+      after: all.slice(index + 1, index + 21),
+      error: null,
+    };
+  }
+  try {
+    const data = await apiRequest<{
+      target: ChatMessage;
+      before: ChatMessage[];
+      after: ChatMessage[];
+    }>(`/api/rooms/${roomId}/messages/${messageId}/context`);
+    return { ...data, error: null };
+  } catch {
+    try {
+      const all = await listAllMessages(roomId);
+      const index = all.findIndex((message) => message.id === messageId);
+      if (index < 0)
+        return { target: null, before: [], after: [], error: null };
+      return {
+        target: all[index],
+        before: all.slice(Math.max(0, index - 40), index),
+        after: all.slice(index + 1, index + 21),
+        error: null,
+      };
+    } catch (fallbackError) {
+      return {
+        target: null,
+        before: [],
+        after: [],
+        error: (fallbackError as Error).message,
+      };
+    }
+  }
+}
+
+export async function deleteMessages(
+  roomId: string,
+  userId: string,
+  messageIds: string[],
+): Promise<{ deleted: number; error: string | null }> {
+  if (shouldUseLocalBackend()) {
+    const ownIds = new Set(messageIds);
+    const messages = read<ChatMessage>(messagesKey(roomId));
+    const next = messages.filter(
+      (message) => !(ownIds.has(message.id) && message.user_id === userId),
+    );
+    write(messagesKey(roomId), next);
+    broadcast(roomId);
+    return {
+      deleted: messages.length - next.length,
+      error: null,
+    };
+  }
+  try {
+    const data = await apiRequest<{ deleted: number }>(
+      `/api/rooms/${roomId}/messages/delete`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageIds }),
+      },
+    );
+    return { deleted: data.deleted, error: null };
+  } catch {
+    try {
+      let deleted = 0;
+      for (const messageId of messageIds) {
+        const result = await deleteMessage(roomId, messageId);
+        if (!result.error) deleted += 1;
+      }
+      return { deleted, error: null };
+    } catch (fallbackError) {
+      return { deleted: 0, error: (fallbackError as Error).message };
+    }
+  }
+}
+
+export async function clearMyMessages(
+  roomId: string,
+  userId: string,
+): Promise<{ deleted: number; error: string | null }> {
+  if (shouldUseLocalBackend()) {
+    const messages = read<ChatMessage>(messagesKey(roomId));
+    const next = messages.filter((message) => message.user_id !== userId);
+    write(messagesKey(roomId), next);
+    broadcast(roomId);
+    return { deleted: messages.length - next.length, error: null };
+  }
+  try {
+    const data = await apiRequest<{ deleted: number }>(
+      `/api/rooms/${roomId}/messages/clear`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      },
+    );
+    return { deleted: data.deleted, error: null };
+  } catch {
+    try {
+      const all = await listAllMessages(roomId);
+      const ownMessages = all.filter(
+        (message) => String(message.user_id) === String(userId),
+      );
+      let deleted = 0;
+      for (const message of ownMessages) {
+        const result = await deleteMessage(roomId, message.id);
+        if (!result.error) deleted += 1;
+      }
+      return { deleted, error: null };
+    } catch (fallbackError) {
+      return { deleted: 0, error: (fallbackError as Error).message };
+    }
+  }
 }
 
 export async function sendMessage(
@@ -341,7 +513,7 @@ export async function sendMessage(
   userId: string,
   body: string,
 ): Promise<{ data: ChatMessage | null; error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const message: ChatMessage = {
       id: crypto.randomUUID(),
       room_id: roomId,
@@ -356,19 +528,22 @@ export async function sendMessage(
     broadcast(roomId);
     return { data: message, error: null };
   }
-  const { data, error } = await supabase
-    .from("messages")
-    .insert({ room_id: roomId, user_id: userId, body })
-    .select()
-    .single();
-  return { data, error: error?.message ?? null };
+  try {
+    const { data } = await apiRequest<{ data: ChatMessage }>(
+      `/api/rooms/${roomId}/messages`,
+      { method: "POST", body: { body } },
+    );
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error: (error as Error).message };
+  }
 }
 
 export async function deleteMessage(
   roomId: string,
   messageId: string,
 ): Promise<{ error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const messages = read<ChatMessage>(messagesKey(roomId));
     write(
       messagesKey(roomId),
@@ -377,120 +552,90 @@ export async function deleteMessage(
     broadcast(roomId);
     return { error: null };
   }
-  const { error } = await supabase
-    .from("messages")
-    .delete()
-    .eq("id", messageId);
-  return { error: error?.message ?? null };
+  try {
+    await apiRequest(`/api/messages/${messageId}`, { method: "DELETE" });
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }
 
 export function subscribeChatMessages(
   roomId: string,
   callback: (message?: ChatMessage) => void,
 ): () => void {
-  if (!supabase) {
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === messagesKey(roomId)) callback();
-    };
-    const onCustom = (event: Event) => {
-      const detail = (event as CustomEvent<{ roomId: string }>).detail;
-      if (detail.roomId === roomId) callback();
-    };
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("multimod-chat-change", onCustom);
+  if (!shouldUseLocalBackend()) {
+    const unsubscribeMessage = subscribeSse<ChatMessage>(
+      roomId,
+      "message",
+      callback,
+    );
+    const unsubscribeMember = subscribeSse<unknown>(roomId, "member", () =>
+      callback(),
+    );
+    const unsubscribeRead = subscribeSse<unknown>(roomId, "read", () =>
+      callback(),
+    );
+    const unsubscribeDelete = subscribeSse<unknown>(roomId, "delete", () =>
+      callback(),
+    );
     return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("multimod-chat-change", onCustom);
+      unsubscribeMessage();
+      unsubscribeMember();
+      unsubscribeRead();
+      unsubscribeDelete();
     };
   }
-
-  const client = supabase;
-  const channel = client
-    .channel(`messages:${roomId}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-        filter: `room_id=eq.${roomId}`,
-      },
-      (payload) => {
-        callback(payload.new as ChatMessage);
-      },
-    )
-    .subscribe();
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === messagesKey(roomId)) callback();
+  };
+  const onCustom = (event: Event) => {
+    const detail = (event as CustomEvent<{ roomId: string }>).detail;
+    if (detail.roomId === roomId) callback();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener("multimod-chat-change", onCustom);
   return () => {
-    void client.removeChannel(channel);
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener("multimod-chat-change", onCustom);
   };
 }
 
 export function subscribePresence(
   roomId: string,
-  userId: string,
-  displayName: string,
+  _userId: string,
+  _displayName: string,
   onChange: (members: ChatMember[]) => void,
 ): () => void {
-  if (!supabase) {
-    onChange([
-      {
-        room_id: roomId,
-        user_id: userId,
-        display_name: displayName,
-        role: "member",
-        joined_at: new Date().toISOString(),
-      },
-    ]);
-    return () => undefined;
+  if (!shouldUseLocalBackend()) {
+    return subscribeSse<ChatMember[]>(roomId, "presence", onChange);
   }
-  const client = supabase;
-  const channel = client.channel(`presence:${roomId}`);
-  const readState = () => {
-    const state = channel.presenceState() as Record<
-      string,
-      Array<{ user_id: string; display_name?: string }>
-    >;
-    const members = Object.values(state).flatMap((list) =>
-      list.map((item) => ({
-        room_id: roomId,
-        user_id: item.user_id,
-        display_name: item.display_name,
-        role: "member" as const,
-        joined_at: new Date().toISOString(),
-      })),
-    );
-    onChange(members);
-  };
-  channel
-    .on("presence", { event: "sync" }, readState)
-    .subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        await channel.track({ user_id: userId, display_name: displayName });
-      }
-    });
-  return () => {
-    void client.removeChannel(channel);
-  };
+  onChange([
+    {
+      room_id: roomId,
+      user_id: _userId,
+      display_name: _displayName,
+      role: "member",
+      joined_at: new Date().toISOString(),
+    },
+  ]);
+  return () => undefined;
 }
 
 export async function markRoomRead(roomId: string, userId: string) {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const lastRead = readLastRead(userId);
     lastRead[roomId] = new Date().toISOString();
     writeLastRead(userId, lastRead);
     return;
   }
-  await supabase
-    .from("room_members")
-    .update({ last_read_at: new Date().toISOString() })
-    .eq("room_id", roomId)
-    .eq("user_id", userId);
+  await apiRequest(`/api/rooms/${roomId}/read`, { method: "POST" });
 }
 
 export async function getUnreadCounts(
   userId: string,
 ): Promise<Record<string, number>> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const lastRead = readLastRead(userId);
     const rooms = read<ChatRoom>(ROOMS_KEY);
     const counts: Record<string, number> = {};
@@ -503,22 +648,12 @@ export async function getUnreadCounts(
     }
     return counts;
   }
-
-  const { data: members } = await supabase
-    .from("room_members")
-    .select("room_id, last_read_at")
-    .eq("user_id", userId);
-  const counts: Record<string, number> = {};
-  for (const member of members ?? []) {
-    let query = supabase
-      .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("room_id", member.room_id);
-    if (member.last_read_at) {
-      query = query.gt("created_at", member.last_read_at);
-    }
-    const { count } = await query;
-    counts[member.room_id] = count ?? 0;
+  try {
+    const { data } = await apiRequest<{ data: Record<string, number> }>(
+      "/api/unread",
+    );
+    return data;
+  } catch {
+    return {};
   }
-  return counts;
 }

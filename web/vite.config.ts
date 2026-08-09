@@ -7,6 +7,9 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   base: process.env.GITHUB_PAGES === "true" ? "/multimod-web/" : "/",
+  define: {
+    global: "globalThis",
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -36,17 +39,18 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,jpg,jpeg,svg,webp,json,woff2}"],
-        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        globIgnores: ["assets/*.mp4"],
+        maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
         navigateFallback: "index.html",
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname === "/assets/hero.mp4",
+            urlPattern: ({ url }) => url.pathname.endsWith(".mp4"),
             handler: "CacheFirst",
             options: {
               cacheName: "media",
               expiration: {
-                maxEntries: 1,
+                maxEntries: 8,
                 maxAgeSeconds: 60 * 60 * 24 * 30,
               },
               cacheableResponse: { statuses: [0, 200] },
@@ -59,6 +63,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      events: "events",
+      process: "process/browser",
+      buffer: "buffer",
     },
   },
   server: {

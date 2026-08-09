@@ -14,6 +14,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { renderSiteHtml, type SiteAsset } from "@/lib/generateSite";
 import { generatorModules } from "@/lib/generatorModules";
 import { describeVibe, parseVibe } from "@/lib/vibeParser";
@@ -35,6 +36,9 @@ export default function GeneratorPage() {
   const user = useAuthStore((state) => state.user);
   const pushToast = useToastStore((state) => state.push);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedRef = useRef<{ title: string; vibe: string; modules: string[] } | null>(
+    null,
+  );
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,6 +70,11 @@ export default function GeneratorPage() {
         setTitle(loaded.title);
         setVibe(loaded.vibe_prompt);
         setModules(loaded.modules.length > 0 ? loaded.modules : defaultModules);
+        savedRef.current = {
+          title: loaded.title,
+          vibe: loaded.vibe_prompt,
+          modules: loaded.modules.length > 0 ? loaded.modules : defaultModules,
+        };
         setAssets(assetResult.data ?? []);
         if (assetResult.error) setError(assetResult.error);
       },
@@ -77,6 +86,12 @@ export default function GeneratorPage() {
 
   useEffect(() => {
     if (!project || !projectId) return;
+    const unchanged =
+      savedRef.current &&
+      savedRef.current.title === title &&
+      savedRef.current.vibe === vibe &&
+      JSON.stringify(savedRef.current.modules) === JSON.stringify(modules);
+    if (unchanged) return;
     const timer = window.setTimeout(async () => {
       setSaving(true);
       const result = await updateProject(projectId, {
@@ -86,6 +101,7 @@ export default function GeneratorPage() {
       });
       setSaving(false);
       if (!result.error) {
+        savedRef.current = { title, vibe, modules };
         setSavedAt(new Date().toLocaleTimeString("zh-CN"));
       } else {
         pushToast("error", result.error);
@@ -104,6 +120,16 @@ export default function GeneratorPage() {
       })),
     [assets],
   );
+
+  usePageMeta({
+    title: `${title.trim() || project?.title || "网站生成器"} - MODULO`,
+    description:
+      vibe.trim() ||
+      "用 vibe 描述氛围，选择功能模块，生成可运行、可导出的完整网站。",
+    image:
+      siteAssets.find((asset) => asset.dataUrl.startsWith("data:image"))
+        ?.dataUrl ?? "/og-cover.png",
+  });
 
   const previewHtml = useMemo(
     () =>

@@ -1,8 +1,15 @@
 import type { ScoreEntry } from "@shared";
 
-import { supabase } from "@/lib/supabase";
+import { apiRequest, shouldUseLocalBackend } from "@/lib/api";
 
-export type GameId = "2048" | "snake" | "tetris";
+export type GameId =
+  | "2048"
+  | "snake"
+  | "tetris"
+  | "mushroom-raft"
+  | "minesweeper"
+  | "memory"
+  | "whack-mole";
 
 export type { ScoreEntry };
 
@@ -13,14 +20,43 @@ function readDemoScores(): Record<GameId, ScoreEntry[]> {
     const raw = localStorage.getItem(DEMO_KEY);
     return raw
       ? (JSON.parse(raw) as Record<GameId, ScoreEntry[]>)
-      : { "2048": [], snake: [], tetris: [] };
+      : {
+          "2048": [],
+          snake: [],
+          tetris: [],
+          "mushroom-raft": [],
+          minesweeper: [],
+          memory: [],
+          "whack-mole": [],
+        };
   } catch {
-    return { "2048": [], snake: [], tetris: [] };
+    return {
+      "2048": [],
+      snake: [],
+      tetris: [],
+      "mushroom-raft": [],
+      minesweeper: [],
+      memory: [],
+      "whack-mole": [],
+    };
   }
 }
 
 function writeDemoScores(scores: Record<GameId, ScoreEntry[]>) {
   localStorage.setItem(DEMO_KEY, JSON.stringify(scores));
+}
+
+function dedupeScores(entries: ScoreEntry[]): ScoreEntry[] {
+  const bestByUser = new Map<string, ScoreEntry>();
+  for (const entry of entries) {
+    const current = bestByUser.get(entry.user_id);
+    if (!current || entry.score > current.score) {
+      bestByUser.set(entry.user_id, entry);
+    }
+  }
+  return [...bestByUser.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 20);
 }
 
 export async function submitScore(
@@ -29,7 +65,7 @@ export async function submitScore(
   score: number,
   displayName?: string,
 ): Promise<{ error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const all = readDemoScores();
     all[gameId].push({
       id: crypto.randomUUID(),
@@ -44,60 +80,49 @@ export async function submitScore(
     writeDemoScores(all);
     return { error: null };
   }
-  const { error } = await supabase.from("scores").insert({
-    game_id: gameId,
-    user_id: userId,
-    score,
-  });
-  return { error: error?.message ?? null };
+  try {
+    await apiRequest("/api/scores", {
+      method: "POST",
+      body: { game_id: gameId, score },
+    });
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }
 
 export async function getBestScore(
   gameId: GameId,
   userId: string,
 ): Promise<{ score: number; error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const entry = readDemoScores()
       [gameId].filter((item) => item.user_id === userId)
       .sort((a, b) => b.score - a.score)[0];
     return { score: entry?.score ?? 0, error: null };
   }
-  const { data, error } = await supabase
-    .from("scores")
-    .select("score")
-    .eq("game_id", gameId)
-    .eq("user_id", userId)
-    .order("score", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return {
-    score: data?.score ?? 0,
-    error: error?.message ?? null,
-  };
+  try {
+    const { score } = await apiRequest<{ score: number }>(
+      `/api/scores/best?game_id=${gameId}`,
+    );
+    return { score, error: null };
+  } catch (error) {
+    return { score: 0, error: (error as Error).message };
+  }
 }
 
 export async function getLeaderboard(
   gameId: GameId,
 ): Promise<{ data: ScoreEntry[]; error: string | null }> {
-  if (!supabase) {
-    return { data: readDemoScores()[gameId], error: null };
+  if (shouldUseLocalBackend()) {
+    return { data: dedupeScores(readDemoScores()[gameId]), error: null };
   }
-  const { data, error } = await supabase
-    .from("scores")
-    .select("id, game_id, user_id, score, created_at, profiles(display_name)")
-    .eq("game_id", gameId)
-    .order("score", { ascending: false })
-    .limit(20);
-  const rows = (data as Array<Record<string, unknown>> | null) ?? [];
-  const entries: ScoreEntry[] = rows.map((row) => ({
-    id: String(row.id),
-    game_id: gameId,
-    user_id: String(row.user_id),
-    score: Number(row.score),
-    created_at: String(row.created_at),
-    display_name: String(
-      (row.profiles as { display_name?: string } | null)?.display_name ?? "",
-    ),
-  }));
-  return { data: entries, error: error?.message ?? null };
+  try {
+    const { data } = await apiRequest<{ data: ScoreEntry[] }>(
+      `/api/scores/leaderboard?game_id=${gameId}`,
+    );
+    return { data: dedupeScores(data), error: null };
+  } catch (error) {
+    return { data: [], error: (error as Error).message };
+  }
 }

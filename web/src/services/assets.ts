@@ -1,6 +1,6 @@
 import type { Asset } from "@shared";
 
-import { supabase } from "@/lib/supabase";
+import { apiRequest, serverApiUrl, shouldUseLocalBackend } from "@/lib/api";
 
 export type { Asset };
 
@@ -26,34 +26,25 @@ function writeDemoAssets(projectId: string, assets: Asset[]) {
   localStorage.setItem(demoKey(projectId), JSON.stringify(assets));
 }
 
-function safeFileName(name: string): string {
-  return name.replace(/[^\w.-]+/g, "-").slice(0, 80) || "asset";
+function absoluteAssetUrl(asset: Asset): Asset {
+  if (asset.kind === "image" && asset.dataUrl?.startsWith("/")) {
+    return { ...asset, dataUrl: `${serverApiUrl}${asset.dataUrl}` };
+  }
+  return asset;
 }
 
 export async function listAssets(projectId: string): Promise<AssetResult> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     return { data: readDemoAssets(projectId), error: null };
   }
-  const client = supabase;
-  const { data, error } = await client
-    .from("assets")
-    .select("*")
-    .eq("project_id", projectId)
-    .order("created_at", { ascending: true });
-  const assets = data ?? [];
-
-  const withUrls = await Promise.all(
-    assets.map(async (asset) => {
-      if (asset.kind !== "image" || !asset.storage_path) return asset;
-      const { data: signed } = await client.storage
-        .from("project-assets")
-        .createSignedUrl(asset.storage_path, 3600);
-      return signed?.signedUrl
-        ? { ...asset, dataUrl: signed.signedUrl }
-        : asset;
-    }),
-  );
-  return { data: withUrls, error: error?.message ?? null };
+  try {
+    const { data } = await apiRequest<{ data: Asset[] }>(
+      `/api/projects/${projectId}/assets`,
+    );
+    return { data: data.map(absoluteAssetUrl), error: null };
+  } catch (error) {
+    return { data: null, error: (error as Error).message };
+  }
 }
 
 export async function addTextAsset(
@@ -62,7 +53,7 @@ export async function addTextAsset(
   name: string,
   content: string,
 ): Promise<{ data: Asset | null; error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     const asset: Asset = {
       id: crypto.randomUUID(),
       project_id: projectId,
@@ -78,18 +69,18 @@ export async function addTextAsset(
     writeDemoAssets(projectId, assets);
     return { data: asset, error: null };
   }
-  const { data, error } = await supabase
-    .from("assets")
-    .insert({
-      project_id: projectId,
-      owner_id: ownerId,
-      kind: "text",
-      name,
-      content,
-    })
-    .select()
-    .single();
-  return { data, error: error?.message ?? null };
+  try {
+    const { data } = await apiRequest<{ data: Asset }>(
+      `/api/projects/${projectId}/assets/text`,
+      {
+        method: "POST",
+        body: { name, content },
+      },
+    );
+    return { data: absoluteAssetUrl(data), error: null };
+  } catch (error) {
+    return { data: null, error: (error as Error).message };
+  }
 }
 
 export async function addImageAsset(
@@ -97,14 +88,13 @@ export async function addImageAsset(
   ownerId: string,
   file: File,
 ): Promise<{ data: Asset | null; error: string | null }> {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("读取图片失败"));
-    reader.readAsDataURL(file);
-  });
-
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("读取图片失败"));
+      reader.readAsDataURL(file);
+    });
     const asset: Asset = {
       id: crypto.randomUUID(),
       project_id: projectId,
@@ -126,44 +116,34 @@ export async function addImageAsset(
     return { data: asset, error: null };
   }
 
-  const storagePath = `${ownerId}/${projectId}/${safeFileName(file.name)}`;
-  const { error: uploadError } = await supabase.storage
-    .from("project-assets")
-    .upload(storagePath, file, { upsert: true });
-  if (uploadError) {
-    return { data: null, error: uploadError.message };
+  const form = new FormData();
+  form.append("file", file);
+  try {
+    const { data } = await apiRequest<{ data: Asset }>(
+      `/api/projects/${projectId}/assets/image`,
+      { method: "POST", body: form },
+    );
+    return { data: absoluteAssetUrl(data), error: null };
+  } catch (error) {
+    return { data: null, error: (error as Error).message };
   }
-  const { data, error } = await supabase
-    .from("assets")
-    .insert({
-      project_id: projectId,
-      owner_id: ownerId,
-      kind: "image",
-      name: file.name,
-      storage_path: storagePath,
-    })
-    .select()
-    .single();
-  return { data, error: error?.message ?? null };
 }
 
 export async function deleteAsset(
   projectId: string,
   assetId: string,
 ): Promise<{ error: string | null }> {
-  if (!supabase) {
+  if (shouldUseLocalBackend()) {
     writeDemoAssets(
       projectId,
       readDemoAssets(projectId).filter((asset) => asset.id !== assetId),
     );
     return { error: null };
   }
-  const asset = (await listAssets(projectId)).data?.find(
-    (item) => item.id === assetId,
-  );
-  if (asset?.storage_path) {
-    await supabase.storage.from("project-assets").remove([asset.storage_path]);
+  try {
+    await apiRequest(`/api/assets/${assetId}`, { method: "DELETE" });
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
   }
-  const { error } = await supabase.from("assets").delete().eq("id", assetId);
-  return { error: error?.message ?? null };
 }

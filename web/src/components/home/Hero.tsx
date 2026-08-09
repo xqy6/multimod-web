@@ -1,200 +1,196 @@
-import { motion } from "framer-motion";
-import {
-  ArrowRight,
-  MousePointerClick,
-  Sparkles,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
-import { useRef, useState } from "react";
+import { Menu, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
-import { ButtonLink } from "@/components/ui/ButtonLink";
 import { assetUrl } from "@/lib/assets";
+import { useAuthStore } from "@/stores/auth";
 
-const container = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.12 },
-  },
-};
+const SPOTLIGHT_R = 260;
+const BG_IMAGE_1 = assetUrl("assets/lithos-base.webp");
+const BG_IMAGE_2 = assetUrl("assets/lithos-reveal.webp");
 
-const item = {
-  hidden: { opacity: 0, y: 26 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.7, ease: "easeOut" as const },
-  },
-};
+const navLinks = [
+  { label: "工作台", to: "/workspace" },
+  { label: "游戏", to: "/games" },
+  { label: "浏览器", to: "/browser" },
+  { label: "聊天", to: "/chat" },
+  { label: "网盘", to: "/netdisk" },
+  { label: "设置", to: "/settings" },
+];
 
 export function Hero() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [soundOn, setSoundOn] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const mouse = useRef({ x: -999, y: -999 });
+  const smooth = useRef({ x: -999, y: -999 });
+  const rafRef = useRef<number | null>(null);
+  const [cursorPos, setCursorPos] = useState({ x: -999, y: -999 });
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const entryPath = user ? "/workspace" : "/login";
 
-  const toggleSound = () => {
-    if (!videoRef.current) return;
-    const next = !soundOn;
-    videoRef.current.muted = !next;
-    setSoundOn(next);
-  };
+  useEffect(() => {
+    const onMouseMove = (event: MouseEvent) => {
+      mouse.current = { x: event.clientX, y: event.clientY };
+    };
+    const onScroll = () => setScrolled(window.scrollY > 16);
+    const tick = () => {
+      smooth.current.x += (mouse.current.x - smooth.current.x) * 0.1;
+      smooth.current.y += (mouse.current.y - smooth.current.y) * 0.1;
+      setCursorPos({ x: smooth.current.x, y: smooth.current.y });
+      rafRef.current = window.requestAnimationFrame(tick);
+    };
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    rafRef.current = window.requestAnimationFrame(tick);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("scroll", onScroll);
+      if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  const spotlightMask = `radial-gradient(circle ${SPOTLIGHT_R}px at ${cursorPos.x}px ${cursorPos.y}px, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 40%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.12) 88%, transparent 100%)`;
 
   return (
     <section
       id="home"
-      className="relative flex min-h-screen items-center overflow-hidden pt-24 pb-16"
+      className="relative w-full overflow-hidden bg-black"
+      style={{ height: "100dvh" }}
     >
-      <motion.div
-        animate={{ backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"] }}
-        transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-        className="absolute inset-0 opacity-70"
-        style={{
-          backgroundImage:
-            "linear-gradient(120deg, rgba(111,203,164,0.14), rgba(142,138,203,0.12), rgba(220,152,106,0.10), rgba(111,203,164,0.14))",
-          backgroundSize: "300% 300%",
-        }}
-        aria-hidden="true"
-      />
-      <div
-        className="absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-          maskImage:
-            "radial-gradient(ellipse 80% 60% at 50% 0%, black 10%, transparent 70%)",
-        }}
-        aria-hidden="true"
-      />
-
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="relative mx-auto grid w-full max-w-7xl items-center gap-14 px-5 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20 lg:px-8"
+      <nav
+        className={`fixed top-0 left-0 right-0 z-[100] flex items-center justify-between p-4 transition-colors duration-300 sm:p-5 ${
+          scrolled ? "bg-black/60 backdrop-blur-md" : "bg-transparent"
+        }`}
       >
-        <div>
-          <motion.div
-            variants={item}
-            className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-xs font-medium text-mist-300 ring-1 ring-white/10 backdrop-blur-md"
+        <a href="#home" className="flex items-center gap-3">
+          <svg
+            width="26"
+            height="26"
+            viewBox="0 0 256 256"
+            fill="#ffffff"
+            aria-hidden="true"
           >
-            <Sparkles
-              className="h-3.5 w-3.5 text-mint-300"
-              aria-hidden="true"
-            />
-            多功能 Web 平台 · AI 建站生成
-          </motion.div>
+            <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z M 256 128 L 128 128 L 0 0 L 128 0 Z" />
+          </svg>
+          <span className="font-playfair text-2xl italic text-white">Lithos</span>
+        </a>
 
-          <motion.h1
-            variants={item}
-            className="mt-7 text-4xl font-bold leading-[1.08] tracking-tight text-mist-100 sm:text-6xl lg:text-7xl"
-          >
-            用一句话描述氛围，
-            <span className="block bg-gradient-to-r from-mint-200 via-mint-300 to-lilac-200 bg-clip-text text-transparent">
-              生成可运行的多功能网站。
-            </span>
-          </motion.h1>
-
-          <motion.p
-            variants={item}
-            className="mt-7 max-w-xl text-base leading-8 text-mist-400 sm:text-lg"
-          >
-            从 vibe 氛围到 UI 效果图、交互原型，再到完整可部署的前端代码。
-            小游戏中心、内置浏览器、实时聊天室、网盘，按需组合，一次生成。
-          </motion.p>
-
-          <motion.div
-            variants={item}
-            className="mt-9 flex flex-col gap-3 sm:flex-row"
-          >
-            <ButtonLink href="/workspace" variant="primary" size="lg">
-              开始生成
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </ButtonLink>
-            <ButtonLink href="#modules" variant="ghost" size="lg">
-              <MousePointerClick className="h-4 w-4" aria-hidden="true" />
-              查看模块
-            </ButtonLink>
-          </motion.div>
-
-          <motion.div
-            variants={item}
-            className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-mist-400"
-          >
-            <span className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-mint-300" />
-              无需自建服务器
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-lilac-300" />
-              实时聊天
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-peach-300" />
-              可部署前端包
-            </span>
-          </motion.div>
-        </div>
-
-        <motion.div variants={item} className="relative">
-          <div className="absolute -inset-6 rounded-hero bg-gradient-to-br from-mint-300/10 via-transparent to-lilac-300/10 blur-2xl" />
-          <div className="relative aspect-[4/3] overflow-hidden rounded-hero border border-white/10 bg-ink-900 shadow-soft">
-            <video
-              ref={videoRef}
-              className="h-full w-full object-cover"
-              src={assetUrl("assets/hero.mp4")}
-              poster={assetUrl("assets/hero-poster.jpg")}
-              preload="metadata"
-              autoPlay
-              muted
-              loop
-              playsInline
-              aria-label="首页主视觉品牌视频"
-            />
-            <span className="absolute bottom-4 left-4 rounded-full bg-ink-950/70 px-3 py-1.5 text-xs font-medium text-mist-200 ring-1 ring-white/10 backdrop-blur-md">
-              首页主视觉 · 品牌视频
-            </span>
-            <button
-              type="button"
-              onClick={toggleSound}
-              className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-ink-950/70 text-mist-100 ring-1 ring-white/10 backdrop-blur-md transition-colors hover:bg-ink-900/80"
-              aria-label={soundOn ? "关闭声音" : "开启声音"}
-              aria-pressed={soundOn}
+        <div className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-white/30 bg-white/20 px-2 py-2 backdrop-blur-md md:flex">
+          {navLinks.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                "text-white/80 hover:bg-white/20 hover:text-white"
+              }`}
             >
-              {soundOn ? (
-                <Volume2 className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <VolumeX className="h-4 w-4" aria-hidden="true" />
-              )}
-            </button>
-          </div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.7, ease: "easeOut" }}
-            className="absolute -bottom-6 -left-5 hidden rounded-card border border-white/10 bg-ink-900/80 p-5 backdrop-blur-xl sm:block"
-          >
-            <p className="text-xs text-mist-400">品牌视频素材</p>
-            <p className="mt-1 text-sm font-semibold text-mist-100">
-              循环播放 · 低透明度 · 不抢内容
-            </p>
-          </motion.div>
-        </motion.div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 0.8 }}
-        className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 text-mist-500 sm:block"
-      >
-        <div className="flex h-12 w-7 items-start justify-center rounded-full border border-white/15 p-1.5">
-          <motion.span
-            animate={{ y: [0, 16, 0], opacity: [1, 0.2, 1] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            className="h-2 w-2 rounded-full bg-mint-300"
-          />
+              {link.label}
+            </Link>
+          ))}
         </div>
-      </motion.div>
+
+        <div className="hidden md:block">
+          <Link
+            to={entryPath}
+            className="rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100"
+          >
+            注册 / 登录
+          </Link>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMenuOpen((open) => !open)}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 md:hidden"
+          aria-label={menuOpen ? "关闭菜单" : "打开菜单"}
+        >
+          {menuOpen ? (
+            <X className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          )}
+        </button>
+      </nav>
+
+      {menuOpen ? (
+        <div className="fixed left-4 right-4 top-20 z-[99] rounded-2xl border border-white/20 bg-black/80 p-4 backdrop-blur-xl md:hidden">
+          <div className="flex flex-col gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setMenuOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm text-white/85 transition-colors hover:bg-white/10"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <Link
+              to={entryPath}
+              onClick={() => setMenuOpen(false)}
+              className="mt-2 rounded-full bg-white px-6 py-3 text-center text-sm font-semibold text-gray-900"
+            >
+              注册 / 登录
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      <div
+        className="hero-zoom absolute inset-0 z-10 bg-center bg-cover bg-no-repeat"
+        style={{ backgroundImage: `url(${BG_IMAGE_1})` }}
+        aria-hidden="true"
+      />
+
+      <div
+        className="absolute inset-0 z-30 bg-center bg-cover bg-no-repeat pointer-events-none"
+        style={{
+          backgroundImage: `url(${BG_IMAGE_2})`,
+          WebkitMaskImage: spotlightMask,
+          maskImage: spotlightMask,
+          WebkitMaskSize: "100% 100%",
+          maskSize: "100% 100%",
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="pointer-events-none absolute left-0 right-0 top-[14%] z-50 flex flex-col items-center px-5 text-center">
+        <h1 className="leading-[0.95] text-white">
+          <span
+            className="hero-anim hero-reveal font-playfair block text-5xl font-normal italic sm:text-7xl md:text-8xl"
+            style={{ letterSpacing: "-0.05em", animationDelay: "0.25s" }}
+          >
+            层层沉积
+          </span>
+          <span
+            className="hero-anim hero-reveal -mt-1 block text-5xl font-normal text-white sm:text-7xl md:text-8xl"
+            style={{ letterSpacing: "-0.08em", animationDelay: "0.42s" }}
+          >
+            藏尽时光
+          </span>
+        </h1>
+      </div>
+
+      <div className="hero-anim hero-fade absolute bottom-14 left-10 z-50 hidden max-w-[260px] sm:block md:left-14">
+        <p className="text-sm leading-relaxed text-white/80">
+          每一层沉积物都记录着地球的一章：从远古海床到飘落的火山灰，数百万年的时间就在我们脚下层层展开。
+        </p>
+      </div>
+
+      <div
+        className="hero-anim hero-fade absolute bottom-10 left-5 right-5 z-50 flex max-w-full flex-col items-start gap-4 sm:bottom-24 sm:left-auto sm:right-10 sm:max-w-[260px] sm:gap-5 md:right-14"
+        style={{ animationDelay: "0.85s" }}
+      >
+        <p className="text-xs leading-relaxed text-white/80 sm:text-sm">
+          交互地图让你层层剥开地壳，追踪岩石、化石与深时如何共同塑造脚下的土地。
+        </p>
+        <Link
+          to={entryPath}
+          className="rounded-full bg-[#e8702a] px-7 py-3 text-sm font-medium text-white transition-all hover:scale-[1.03] hover:bg-[#d2611f] hover:shadow-lg hover:shadow-[#e8702a]/30 active:scale-95"
+        >
+          开始探索
+        </Link>
+      </div>
     </section>
   );
 }
