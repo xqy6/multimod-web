@@ -1,6 +1,23 @@
 const buckets = new Map();
+let cleanupTimer = null;
+
+function scheduleCleanup(windowMs) {
+  if (cleanupTimer) return;
+  cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, bucket] of buckets) {
+      if (now > bucket.reset + windowMs) buckets.delete(key);
+    }
+    if (buckets.size === 0 && cleanupTimer) {
+      clearInterval(cleanupTimer);
+      cleanupTimer = null;
+    }
+  }, 60_000);
+  cleanupTimer.unref?.();
+}
 
 export function createRateLimiter({ windowMs = 60000, max = 30 } = {}) {
+  scheduleCleanup(windowMs);
   return (req, res, next) => {
     const key = `${req.ip}:${req.path}`;
     const now = Date.now();
