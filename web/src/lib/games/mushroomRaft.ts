@@ -178,6 +178,7 @@ export interface Enemy {
   timer: number;
   shellTimer: number;
   homeX: number;
+  raftId?: string;
 }
 
 export interface Item {
@@ -1492,9 +1493,9 @@ function updateEnemies(state: MushroomRaftState, k: number) {
       state.levelIndex === 5 &&
       (enemy.kind === "goomba" || enemy.kind === "koopa")
     ) {
-      const raft = state.rafts.find(
-        (entry) => Math.abs(entry.x - enemy.x) < 90,
-      );
+      const raft = enemy.raftId
+        ? state.rafts.find((entry) => entry.id === enemy.raftId)
+        : state.rafts.find((entry) => Math.abs(entry.x - enemy.x) < 90);
       if (raft) {
         enemy.x = raft.x + 30;
         enemy.y = raft.y - enemy.h;
@@ -2064,28 +2065,23 @@ function updateBoss(state: MushroomRaftState, k: number) {
       : boss.phase === 1
         ? 1.2
         : 1.6;
-    const fireballCount = state.projectiles.filter(
-      (entry) => entry.alive && entry.kind === "fireball",
-    ).length;
-    if (fireballCount < 6) {
+    state.projectiles.push({
+      id: uid("b"),
+      kind: "fireball",
+      x: boss.x + boss.w / 2,
+      y: boss.y + 20,
+      vx: target.x > boss.x ? (boss.phase === 1 ? 5.2 : 6.2) : (boss.phase === 1 ? -5.2 : -6.2),
+      alive: true,
+    });
+    if (boss.phase === 2) {
       state.projectiles.push({
-        id: uid("b"),
+        id: uid("b2"),
         kind: "fireball",
-        x: boss.x + boss.w / 2,
-        y: boss.y + 20,
-        vx: target.x > boss.x ? (boss.phase === 1 ? 5.2 : 6.2) : (boss.phase === 1 ? -5.2 : -6.2),
+        x: boss.x + 30,
+        y: boss.y + 40,
+        vx: target.x > boss.x ? 5.4 : -5.4,
         alive: true,
       });
-      if (boss.phase === 2) {
-        state.projectiles.push({
-          id: uid("b2"),
-          kind: "fireball",
-          x: boss.x + 30,
-          y: boss.y + 40,
-          vx: target.x > boss.x ? 5.4 : -5.4,
-          alive: true,
-        });
-      }
     }
     boss.timer = boss.phase === 2
       ? boss.charging
@@ -2101,13 +2097,16 @@ function updateBoss(state: MushroomRaftState, k: number) {
     boss.summonTimer <= 0 &&
     state.enemies.filter((entry) => entry.alive).length < 14
   ) {
+    const summonRaftId = uid("r");
+    const raftMinion = makeEnemy("goomba", boss.x + 150, boss.x + 150, 396);
+    raftMinion.raftId = summonRaftId;
     state.enemies.push(
-      makeEnemy("goomba", boss.x - 170, boss.x - 170, 375),
-      makeEnemy("koopa", boss.x + 110, boss.x + 110, 330),
+      raftMinion,
+      makeEnemy("koopa", boss.x - 170, boss.x - 170, 330),
       makeEnemy("goomba", boss.x + 230, boss.x + 230, 375),
     );
     state.rafts.push({
-      id: uid("r"),
+      id: summonRaftId,
       x: boss.x + 150,
       y: 430,
       w: 110,
