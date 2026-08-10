@@ -2203,14 +2203,15 @@ function updateBoss(state: MushroomRaftState, k: number) {
 function maybeAdvanceBossPhase(state: MushroomRaftState) {
   const boss = state.boss;
   if (!boss || !boss.alive) return;
-  if (boss.phase === 1 && boss.hp <= Math.floor(boss.maxHp / 2)) {
+  if (boss.phase === 1 && boss.hp <= 0) {
     boss.phase = 2;
-    boss.x = Math.max(5200, state.player.x + 360);
+    boss.x = 5200;
     boss.y = 330;
+    boss.hp = boss.maxHp;
     boss.vx = 1.6;
     boss.summonTimer = 120;
     boss.vx *= 1.4;
-    setMessage(state, "库巴跳上甲板，进入第二阶段！小心冲撞和喷火！");
+    setMessage(state, "库巴的巨船被击沉，他跳上甲板！第二阶段！");
   }
 }
 
