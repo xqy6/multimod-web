@@ -1446,6 +1446,7 @@ function damagePlayer(
     player.onRaftId = null;
     player.invincible = 180;
     player.vy = -6;
+    state.drownTimer = 0;
     setMessage(state, `受击闪避！还剩 ${player.lives} 条命`);
     return;
   }
