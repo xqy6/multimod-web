@@ -911,6 +911,7 @@ function drawFinishFlag(
   context: CanvasRenderingContext2D,
   state: MushroomRaftState,
 ) {
+  if (state.boss?.alive) return;
   const x = state.finishX - state.camera.x;
   if (x < -40 || x > RAFT_VIEW_WIDTH + 40) return;
   context.strokeStyle = "#6b5634";
