@@ -454,6 +454,9 @@ function makePlatforms(levelIndex: number): Platform[] {
       block("question", 3500),
       platform(3900, 340, 180),
       ground(4300, 1760),
+      platform(4650, 330, 140),
+      platform(5350, 300, 130),
+      platform(5750, 330, 120),
       block("brick", 5200),
       { id: uid("p"), kind: "pipe", x: 5300, y: 330, w: 44, h: 80 },
       block("question", 5600),
@@ -1631,11 +1634,7 @@ function updateEnemies(state: MushroomRaftState, k: number) {
         )
       ) {
         if (enemy.kind === "bubble") {
-          enemy.vx = -enemy.vx;
-          enemy.x =
-            enemy.vx < 0
-              ? raft.x - enemy.w - 40
-              : raft.x + raft.w + 40;
+          continue;
         } else {
           raft.hp -= 1;
           enemy.alive = false;
@@ -2085,9 +2084,22 @@ function updateBoss(state: MushroomRaftState, k: number) {
 
   if (boss.phase === 1 && boss.summonTimer <= 0) {
     state.enemies.push(
-      makeEnemy("bubble", boss.x - 140, boss.x - 140, 420),
-      makeEnemy("bubble", boss.x + 120, boss.x + 120, 420),
+      makeEnemy("goomba", boss.x - 170, boss.x - 170, 420),
+      makeEnemy("koopa", boss.x + 110, boss.x + 110, 330),
+      makeEnemy("goomba", boss.x + 230, boss.x + 230, 420),
     );
+    state.rafts.push({
+      id: uid("r"),
+      x: boss.x + 150,
+      y: 430,
+      w: 110,
+      h: 22,
+      hp: RAFT_MAX_HP,
+      maxHp: RAFT_MAX_HP,
+      speed: 1.4,
+      bob: 0,
+      shieldTimer: 0,
+    });
     boss.summonTimer = 170;
   }
 
