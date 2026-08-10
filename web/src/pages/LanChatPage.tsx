@@ -48,6 +48,7 @@ export default function LanChatPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lanAddresses, setLanAddresses] = useState<string[]>([]);
+  const [lanAddressHint, setLanAddressHint] = useState<string | null>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
 
@@ -73,6 +74,11 @@ export default function LanChatPage() {
     try {
       const result = await getLanAddresses(targetBase);
       setLanAddresses(result.addresses ?? []);
+      setLanAddressHint(
+        result.isFallback
+          ? "未检测到局域网连接，请确认电脑已连接 Wi-Fi/路由器；本机可用 http://127.0.0.1:4100 测试。"
+          : null,
+      );
     } catch (addressError) {
       setError((addressError as Error).message);
     }
@@ -83,6 +89,7 @@ export default function LanChatPage() {
     const localAddresses = await detectLocalIp();
     if (localAddresses.length > 0) {
       setLanAddresses(localAddresses);
+      setLanAddressHint(null);
       return;
     }
     const targetBase =
@@ -298,6 +305,11 @@ export default function LanChatPage() {
                 );
               })}
             </div>
+          ) : null}
+          {lanAddressHint ? (
+            <p className="mt-2 w-full text-xs leading-5 text-amber-200/90">
+              {lanAddressHint}
+            </p>
           ) : null}
         </div>
         <p className="mt-3 text-xs leading-5 text-mist-500">
