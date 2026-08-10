@@ -41,6 +41,36 @@ describe("deep mushroom raft checks", () => {
     expect(state.rafts.length).toBeGreaterThan(raftsBefore);
   });
 
+  it("player can board the summoned boss raft", () => {
+    const state = createMushroomRaftGame(5);
+    const boss = state.boss;
+    if (!boss) throw new Error("no boss");
+    boss.summonTimer = 0;
+    for (let i = 0; i < 10; i += 1) {
+      stepMushroomRaftGame(state, IDLE, 1 / 60);
+    }
+    const summoned = state.rafts.find(
+      (raft) => raft.speed === 1.4 && raft.x > 2500,
+    );
+    expect(summoned).toBeDefined();
+    if (!summoned) return;
+    const minion = state.enemies.find((entry) => entry.raftId === summoned.id);
+    state.enemies = minion ? [minion] : [];
+    state.hazards = [];
+    state.projectiles = [];
+    const player = state.player;
+    player.x = summoned.x + 20;
+    player.y = summoned.y - player.h - 10;
+    player.vy = 4;
+    player.onRaftId = null;
+
+    for (let i = 0; i < 20; i += 1) {
+      stepMushroomRaftGame(state, IDLE, 1 / 60);
+    }
+
+    expect(player.onRaftId).toBe(summoned.id);
+  });
+
   it("stops summoning when too many minions are alive", () => {
     const state = createMushroomRaftGame(5);
     const boss = state.boss;
