@@ -1606,6 +1606,15 @@ function updateEnemies(state: MushroomRaftState, k: number) {
         }
         if (player.vy > 0 && player.y + player.h - enemy.y < 18) {
           stompEnemy(state, enemy, player);
+        } else if (
+          enemy.raftId &&
+          player.vy >= 0 &&
+          player.y + player.h >= enemy.y &&
+          player.y < enemy.y + enemy.h
+        ) {
+          enemy.alive = false;
+          state.score += 100;
+          player.vy = Math.max(player.vy, 3);
         } else if (enemy.kind === "bubble" || enemy.kind === "ghost") {
           player.vy = -9;
           player.vx = player.x < enemy.x ? -5 : 5;
@@ -2098,16 +2107,16 @@ function updateBoss(state: MushroomRaftState, k: number) {
     state.enemies.filter((entry) => entry.alive).length < 14
   ) {
     const summonRaftId = uid("r");
-    const raftMinion = makeEnemy("goomba", boss.x + 150, boss.x + 150, 396);
+    const raftMinion = makeEnemy("goomba", boss.x + 320, boss.x + 320, 396);
     raftMinion.raftId = summonRaftId;
     state.enemies.push(
       raftMinion,
       makeEnemy("koopa", boss.x - 170, boss.x - 170, 330),
-      makeEnemy("goomba", boss.x + 230, boss.x + 230, 375),
+      makeEnemy("goomba", boss.x + 420, boss.x + 420, 375),
     );
     state.rafts.push({
       id: summonRaftId,
-      x: boss.x + 150,
+      x: boss.x + 320,
       y: 430,
       w: 110,
       h: 22,
