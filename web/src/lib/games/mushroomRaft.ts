@@ -2055,23 +2055,28 @@ function updateBoss(state: MushroomRaftState, k: number) {
       : boss.phase === 1
         ? 1.2
         : 1.6;
-    state.projectiles.push({
-      id: uid("b"),
-      kind: "fireball",
-      x: boss.x + boss.w / 2,
-      y: boss.y + 20,
-      vx: target.x > boss.x ? (boss.phase === 1 ? 5.2 : 6.2) : (boss.phase === 1 ? -5.2 : -6.2),
-      alive: true,
-    });
-    if (boss.phase === 2) {
+    const fireballCount = state.projectiles.filter(
+      (entry) => entry.alive && entry.kind === "fireball",
+    ).length;
+    if (fireballCount < 6) {
       state.projectiles.push({
-        id: uid("b2"),
+        id: uid("b"),
         kind: "fireball",
-        x: boss.x + 30,
-        y: boss.y + 40,
-        vx: target.x > boss.x ? 5.4 : -5.4,
+        x: boss.x + boss.w / 2,
+        y: boss.y + 20,
+        vx: target.x > boss.x ? (boss.phase === 1 ? 5.2 : 6.2) : (boss.phase === 1 ? -5.2 : -6.2),
         alive: true,
       });
+      if (boss.phase === 2) {
+        state.projectiles.push({
+          id: uid("b2"),
+          kind: "fireball",
+          x: boss.x + 30,
+          y: boss.y + 40,
+          vx: target.x > boss.x ? 5.4 : -5.4,
+          alive: true,
+        });
+      }
     }
     boss.timer = boss.phase === 2
       ? boss.charging
@@ -2082,7 +2087,11 @@ function updateBoss(state: MushroomRaftState, k: number) {
         : 85;
   }
 
-  if (boss.phase === 1 && boss.summonTimer <= 0) {
+  if (
+    boss.phase === 1 &&
+    boss.summonTimer <= 0 &&
+    state.enemies.filter((entry) => entry.alive).length < 14
+  ) {
     state.enemies.push(
       makeEnemy("goomba", boss.x - 170, boss.x - 170, 420),
       makeEnemy("koopa", boss.x + 110, boss.x + 110, 330),
@@ -2366,7 +2375,12 @@ function updatePlayerEntity(
     return;
   }
 
-  if (player.y + player.h > WATER_Y + 10 && !player.onRaftId) {
+  if (
+    player.invincible <= 0 &&
+    player.starTimer <= 0 &&
+    player.y + player.h > WATER_Y + 10 &&
+    !player.onRaftId
+  ) {
     state.drownTimer += k;
     if (state.drownTimer > 42) {
       damagePlayer(state, player);
