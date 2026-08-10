@@ -237,6 +237,7 @@ export interface Player {
   doubleJumpUsed: boolean;
   fragilePlatformId: string | null;
   wasJumpHeld: boolean;
+  drownTimer: number;
   lives: number;
   dead: boolean;
 }
@@ -1056,6 +1057,7 @@ function makePlayer(x: number, y: number): Player {
     doubleJumpUsed: false,
     fragilePlatformId: null,
     wasJumpHeld: false,
+    drownTimer: 0,
     lives: 3,
     dead: false,
   };
@@ -1271,7 +1273,7 @@ function landOnRafts(state: MushroomRaftState, player: Player) {
       player.onRaftId = raft.id;
       player.doubleJumpUsed = false;
       player.fragilePlatformId = null;
-      state.drownTimer = 0;
+      player.drownTimer = 0;
       state.mode = "raft";
     }
   }
@@ -1449,7 +1451,7 @@ function damagePlayer(
     player.onRaftId = null;
     player.invincible = 180;
     player.vy = -6;
-    state.drownTimer = 0;
+    player.drownTimer = 0;
     setMessage(state, `受击闪避！还剩 ${player.lives} 条命`);
     return;
   }
@@ -1461,7 +1463,7 @@ function damagePlayer(
   player.vy = 0;
   player.invincible = 180;
   resetSectionOnRespawn(state);
-  state.drownTimer = 0;
+  player.drownTimer = 0;
   setMessage(state, `回到存档点，还剩 ${player.lives} 条命`);
 }
 
@@ -2381,13 +2383,13 @@ function updatePlayerEntity(
     player.y + player.h > WATER_Y + 10 &&
     !player.onRaftId
   ) {
-    state.drownTimer += k;
-    if (state.drownTimer > 42) {
+    player.drownTimer += k;
+    if (player.drownTimer > 42) {
       damagePlayer(state, player);
-      state.drownTimer = 0;
+      player.drownTimer = 0;
     }
   } else {
-    state.drownTimer = 0;
+    player.drownTimer = 0;
   }
 
   if (
