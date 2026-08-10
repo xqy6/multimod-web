@@ -2112,9 +2112,12 @@ function updateBoss(state: MushroomRaftState, k: number) {
       state.player.h,
     )
   ) {
+    const stompingTop =
+      player.vy >= 0 &&
+      player.y < boss.y + 30 &&
+      player.y + player.h > boss.y;
     if (
-      player.vy > 0 &&
-      player.y + player.h - boss.y < 24 &&
+      stompingTop &&
       player.x + player.w / 2 > boss.x + boss.w * 0.5 &&
       boss.invincible <= 0
     ) {
@@ -2125,10 +2128,10 @@ function updateBoss(state: MushroomRaftState, k: number) {
       setMessage(state, `库巴被踩中了！HP ${Math.max(0, boss.hp)}/${boss.maxHp}`);
     } else if (
       boss.phase === 1 &&
-      player.vy > 0 &&
-      player.y + player.h - boss.y < 24
+      stompingTop
     ) {
       player.vy = -8;
+      player.y = boss.y - player.h - 1;
     } else {
       damagePlayer(state, player, false);
     }
@@ -2149,9 +2152,12 @@ function updateBoss(state: MushroomRaftState, k: number) {
         player2.h,
       )
     ) {
+      const stompingTop =
+        player2.vy >= 0 &&
+        player2.y < boss.y + 30 &&
+        player2.y + player2.h > boss.y;
       if (
-        player2.vy > 0 &&
-        player2.y + player2.h - boss.y < 24 &&
+        stompingTop &&
         player2.x + player2.w / 2 > boss.x + boss.w * 0.5 &&
         boss.invincible <= 0
       ) {
@@ -2165,10 +2171,10 @@ function updateBoss(state: MushroomRaftState, k: number) {
         );
       } else if (
         boss.phase === 1 &&
-        player2.vy > 0 &&
-        player2.y + player2.h - boss.y < 24
+        stompingTop
       ) {
         player2.vy = -8;
+        player2.y = boss.y - player2.h - 1;
       } else {
         damagePlayer(state, player2, false);
       }
