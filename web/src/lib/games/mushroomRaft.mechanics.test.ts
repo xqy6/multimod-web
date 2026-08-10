@@ -158,4 +158,46 @@ describe("deep mushroom raft checks", () => {
     expect(p1.lives).toBe(2);
     expect(p2.lives).toBe(1);
   });
+
+  it("removes fireballs that fly off screen", () => {
+    const state = createMushroomRaftGame(5);
+    state.projectiles.push({
+      id: "far-fireball",
+      kind: "fireball",
+      x: 99999,
+      y: 100,
+      vx: 1,
+      alive: true,
+    });
+
+    stepMushroomRaftGame(state, IDLE, 1 / 60);
+
+    expect(
+      state.projectiles.some((entry) => entry.id === "far-fireball"),
+    ).toBe(false);
+  });
+
+  it("summoned goombas spawn above the ground", () => {
+    const state = createMushroomRaftGame(5);
+    const boss = state.boss;
+    if (!boss) throw new Error("no boss");
+    boss.summonTimer = 0;
+    boss.x = 2500;
+
+    stepMushroomRaftGame(state, IDLE, 1 / 60);
+
+    for (const goomba of state.enemies.filter(
+      (entry) => entry.kind === "goomba",
+    )) {
+      const ground = state.platforms.find(
+        (platform) =>
+          platform.kind === "ground" &&
+          goomba.x + goomba.w > platform.x &&
+          goomba.x < platform.x + platform.w,
+      );
+      if (ground) {
+        expect(goomba.y + goomba.h).toBeLessThanOrEqual(ground.y + 2);
+      }
+    }
+  });
 });
