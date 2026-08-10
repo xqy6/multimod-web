@@ -1469,6 +1469,10 @@ function stompEnemy(
   enemy.alive = false;
   player.vy = -9.5;
   state.score += 100;
+  if (enemy.kind === "bubble" && player.canGlide) {
+    player.doubleJumpUsed = false;
+    setMessage(state, "滑翔弹开水泡怪，还能再跳一次！");
+  }
 }
 
 function updateEnemies(state: MushroomRaftState, k: number) {
@@ -1599,7 +1603,13 @@ function updateEnemies(state: MushroomRaftState, k: number) {
           player.vy = -9;
           player.vx = player.x < enemy.x ? -5 : 5;
           player.invincible = Math.max(player.invincible, 40);
-          if (enemy.kind === "bubble") enemy.alive = false;
+          if (enemy.kind === "bubble") {
+            enemy.alive = false;
+            if (player.canGlide) {
+              player.doubleJumpUsed = false;
+              setMessage(state, "滑翔弹开水泡怪，还能再跳一次！");
+            }
+          }
         } else {
           damagePlayer(state, player, false);
         }
