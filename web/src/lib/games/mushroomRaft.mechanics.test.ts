@@ -197,4 +197,18 @@ describe("deep mushroom raft checks", () => {
       }
     }
   });
+
+  it("finish only counts after the boss is defeated", () => {
+    const state = createMushroomRaftGame(5);
+    const boss = state.boss;
+    if (!boss) throw new Error("no boss");
+    state.player.x = state.finishX;
+
+    stepMushroomRaftGame(state, IDLE, 1 / 60);
+    expect(state.status).toBe("playing");
+
+    boss.alive = false;
+    stepMushroomRaftGame(state, IDLE, 1 / 60);
+    expect(state.status).toBe("won");
+  });
 });
