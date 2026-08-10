@@ -2095,7 +2095,7 @@ function updateBoss(state: MushroomRaftState, k: number) {
     boss.floodTimer -= k;
     if (boss.floodTimer <= 0) {
       boss.flooding = !boss.flooding;
-      boss.floodTimer = boss.flooding ? 200 : 260;
+      boss.floodTimer = boss.flooding ? 60 : 300;
       if (boss.flooding) {
         setMessage(state, "甲板进水！跳到高处躲避！");
       }
