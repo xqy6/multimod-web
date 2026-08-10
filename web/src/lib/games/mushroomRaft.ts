@@ -2205,7 +2205,7 @@ function maybeAdvanceBossPhase(state: MushroomRaftState) {
   if (!boss || !boss.alive) return;
   if (boss.phase === 1 && boss.hp <= Math.floor(boss.maxHp / 2)) {
     boss.phase = 2;
-    boss.x = 5200;
+    boss.x = Math.max(5200, state.player.x + 360);
     boss.y = 330;
     boss.vx = 1.6;
     boss.summonTimer = 120;
