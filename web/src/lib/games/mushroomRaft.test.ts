@@ -109,6 +109,45 @@ describe("mushroom raft engine", () => {
     expect(state.player.lives).toBe(1);
   });
 
+  it("falling rock damage keeps the player in place with invincibility", () => {
+    const state = createMushroomRaftGame(2);
+    const rock = state.hazards.find((entry) => entry.kind === "rock");
+    if (!rock) return;
+    state.player.lives = 2;
+    state.player.invincible = 0;
+    state.player.starTimer = 0;
+    state.player.x = 2000;
+    state.player.y = 300;
+    rock.active = true;
+    rock.vy = 0;
+    rock.x = state.player.x;
+    rock.y = state.player.y;
+    const xBefore = state.player.x;
+
+    stepMushroomRaftGame(state, idle, 1 / 60);
+
+    expect(state.player.lives).toBe(1);
+    expect(state.player.invincible).toBeGreaterThan(0);
+    expect(state.player.x).toBe(xBefore);
+  });
+
+  it("drowning returns the player to the checkpoint", () => {
+    const state = createMushroomRaftGame();
+    state.player.lives = 2;
+    state.player.invincible = 0;
+    state.player.x = 500;
+    state.player.y = 520;
+    state.player.onRaftId = null;
+    const checkpoint = state.checkpoint;
+
+    for (let i = 0; i < 120; i += 1) {
+      stepMushroomRaftGame(state, idle, 1 / 60);
+    }
+
+    expect(state.player.lives).toBe(1);
+    expect(state.player.x).toBe(checkpoint + 20);
+  });
+
   it("enters phase two after phase one hp reaches zero and restores hp", () => {
     const state = createMushroomRaftGame(5);
     const boss = state.boss;
