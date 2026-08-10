@@ -555,6 +555,23 @@ describe("mushroom raft engine", () => {
     expect(Math.sign(bubble.vx)).not.toBe(Math.sign(vxBefore));
   });
 
+  it("lets a gliding player bounce and double-jump after popping a bubble", () => {
+    const state = createMushroomRaftGame();
+    const bubble = state.enemies.find((entry) => entry.kind === "bubble");
+    if (!bubble) return;
+    state.player.canGlide = true;
+    state.player.doubleJumpUsed = true;
+    state.player.x = bubble.x;
+    state.player.y = bubble.y - state.player.h + 4;
+    state.player.vy = 6;
+
+    stepMushroomRaftGame(state, idle, 1 / 60);
+
+    expect(bubble.alive).toBe(false);
+    expect(state.player.doubleJumpUsed).toBe(false);
+    expect(state.player.vy).toBeLessThan(0);
+  });
+
   it("wins the run at the celebration flag", () => {
     const state = createMushroomRaftGame();
     state.player.x = 6100;
