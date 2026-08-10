@@ -2119,7 +2119,7 @@ function updateBoss(state: MushroomRaftState, k: number) {
       boss.invincible <= 0
     ) {
       boss.hp -= 1;
-      boss.invincible = 120;
+      boss.invincible = 180;
       player.vy = -10.5;
       state.score += 200;
       setMessage(state, `库巴被踩中了！HP ${Math.max(0, boss.hp)}/${boss.maxHp}`);
@@ -2156,7 +2156,7 @@ function updateBoss(state: MushroomRaftState, k: number) {
         boss.invincible <= 0
       ) {
         boss.hp -= 1;
-        boss.invincible = 120;
+        boss.invincible = 180;
         player2.vy = -10.5;
         state.score += 200;
         setMessage(
