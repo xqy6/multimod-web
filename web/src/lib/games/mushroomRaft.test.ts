@@ -522,19 +522,21 @@ describe("mushroom raft engine", () => {
     expect(state.score).toBe(500);
   });
 
-  it("destroys a raft when a bubble enemy hits it", () => {
+  it("bounces a bubble enemy off a raft without destroying it", () => {
     const state = createMushroomRaftGame();
     const raft = state.rafts[1];
     const bubble = state.enemies.find((entry) => entry.kind === "bubble");
     raft.hp = 1;
-    if (bubble) {
-      bubble.x = raft.x + 20;
-      bubble.y = raft.y - 10;
-    }
+    if (!bubble) return;
+    bubble.x = raft.x + 20;
+    bubble.y = raft.y - 10;
+    const vxBefore = bubble.vx;
 
     stepMushroomRaftGame(state, idle, 1 / 60);
 
-    expect(state.rafts.some((entry) => entry.id === raft.id)).toBe(false);
+    expect(state.rafts.some((entry) => entry.id === raft.id)).toBe(true);
+    expect(bubble.alive).toBe(true);
+    expect(Math.sign(bubble.vx)).not.toBe(Math.sign(vxBefore));
   });
 
   it("wins the run at the celebration flag", () => {
