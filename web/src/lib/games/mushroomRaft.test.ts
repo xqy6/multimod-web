@@ -87,6 +87,28 @@ describe("mushroom raft engine", () => {
     expect(boss.flooding).toBe(true);
   });
 
+  it("flooding only hurts players inside the water", () => {
+    const state = createMushroomRaftGame(5);
+    const boss = state.boss;
+    if (!boss) return;
+    boss.phase = 2;
+    boss.flooding = true;
+    state.player.lives = 2;
+    state.player.invincible = 0;
+    state.player.x = 5300;
+    state.player.y = 380;
+    state.player.vy = 0;
+
+    stepMushroomRaftGame(state, idle, 1 / 60);
+    expect(state.player.lives).toBe(2);
+
+    state.player.lives = 2;
+    state.player.invincible = 0;
+    state.player.y = 440;
+    stepMushroomRaftGame(state, idle, 1 / 60);
+    expect(state.player.lives).toBe(1);
+  });
+
   it("enters phase two after phase one hp reaches zero and restores hp", () => {
     const state = createMushroomRaftGame(5);
     const boss = state.boss;
