@@ -2102,9 +2102,8 @@ function updateBoss(state: MushroomRaftState, k: number) {
     if (boss.flooding) {
       for (const player of players) {
         if (
-          player.onGround &&
-          player.y + player.h > 400 &&
-          player.y + player.h < 455
+          player.y + player.h > WATER_Y &&
+          player.y + player.h < RAFT_VIEW_HEIGHT
         ) {
           damagePlayer(state, player, false);
         }
