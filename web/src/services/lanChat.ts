@@ -128,7 +128,10 @@ export function checkLanServer(base: string) {
 }
 
 export function getLanAddresses(base: string) {
-  return request<{ addresses: string[] }>(base, "/lan/ip");
+  return request<{ addresses: string[]; isFallback?: boolean }>(
+    base,
+    "/lan/ip",
+  );
 }
 
 export function listLanRooms(base: string) {
