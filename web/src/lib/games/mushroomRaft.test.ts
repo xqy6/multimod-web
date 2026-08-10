@@ -599,7 +599,7 @@ describe("mushroom raft engine", () => {
     expect(state.score).toBe(500);
   });
 
-  it("bounces a bubble enemy off a raft without destroying it", () => {
+  it("bubble enemies pass through rafts without bouncing or damaging them", () => {
     const state = createMushroomRaftGame();
     const raft = state.rafts[1];
     const bubble = state.enemies.find((entry) => entry.kind === "bubble");
@@ -608,15 +608,17 @@ describe("mushroom raft engine", () => {
     bubble.x = raft.x + 20;
     bubble.y = raft.y - 10;
     const vxBefore = bubble.vx;
+    const hpBefore = raft.hp;
 
     stepMushroomRaftGame(state, idle, 1 / 60);
 
     expect(state.rafts.some((entry) => entry.id === raft.id)).toBe(true);
     expect(bubble.alive).toBe(true);
-    expect(Math.sign(bubble.vx)).not.toBe(Math.sign(vxBefore));
+    expect(bubble.vx).toBe(vxBefore);
+    expect(raft.hp).toBe(hpBefore);
   });
 
-  it("bubble enemies escape rafts instead of staying inside", () => {
+  it("bubble keeps moving while overlapping a raft", () => {
     const state = createMushroomRaftGame();
     const raft = state.rafts[1];
     const bubble = state.enemies.find((entry) => entry.kind === "bubble");
@@ -625,21 +627,18 @@ describe("mushroom raft engine", () => {
     bubble.y = raft.y + raft.h / 2;
     bubble.vx = 0.4;
     raft.hp = 10;
+    const startX = bubble.x;
+    const vxBefore = bubble.vx;
 
-    let stuckFrames = 0;
-    for (let i = 0; i < 240; i += 1) {
+    for (let i = 0; i < 120; i += 1) {
       stepMushroomRaftGame(state, idle, 1 / 60);
-      const current = state.enemies.find((entry) => entry.kind === "bubble");
-      if (!current) break;
-      const overlapping =
-        current.x < raft.x + raft.w &&
-        current.x + current.w > raft.x &&
-        current.y < raft.y + raft.h &&
-        current.y + current.h > raft.y;
-      if (overlapping) stuckFrames += 1;
     }
 
-    expect(stuckFrames).toBeLessThan(10);
+    const current = state.enemies.find((entry) => entry.kind === "bubble");
+    expect(current).toBeDefined();
+    expect(current?.vx).toBe(vxBefore);
+    expect(raft.hp).toBe(10);
+    expect(Math.abs((current?.x ?? startX) - startX)).toBeGreaterThan(10);
   });
 
   it("lets a gliding player bounce and double-jump after popping a bubble", () => {
