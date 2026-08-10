@@ -1634,8 +1634,8 @@ function updateEnemies(state: MushroomRaftState, k: number) {
           enemy.vx = -enemy.vx;
           enemy.x =
             enemy.vx < 0
-              ? raft.x - enemy.w - 1
-              : raft.x + raft.w + 1;
+              ? raft.x - enemy.w - 40
+              : raft.x + raft.w + 40;
         } else {
           raft.hp -= 1;
           enemy.alive = false;
