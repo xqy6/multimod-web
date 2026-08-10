@@ -87,6 +87,20 @@ describe("mushroom raft engine", () => {
     expect(boss.flooding).toBe(true);
   });
 
+  it("enters phase two after phase one hp reaches zero and restores hp", () => {
+    const state = createMushroomRaftGame(5);
+    const boss = state.boss;
+    if (!boss) return;
+    boss.hp = 0;
+
+    stepMushroomRaftGame(state, idle, 1 / 60);
+
+    expect(boss.phase).toBe(2);
+    expect(boss.alive).toBe(true);
+    expect(boss.hp).toBe(boss.maxHp);
+    expect(boss.x).toBe(5200);
+  });
+
   it("lets water bullets damage the boss", () => {
     const state = createMushroomRaftGame(5);
     const boss = state.boss;
@@ -346,17 +360,19 @@ describe("mushroom raft engine", () => {
     expect(state.raftSpawnTimer).toBeLessThanOrEqual(600);
   });
 
-  it("moves the boss into phase two at half health", () => {
+  it("moves the boss into phase two after phase one health is depleted", () => {
     const state = createMushroomRaftGame(5);
     const boss = state.boss;
     if (!boss) return;
-    boss.hp = 5;
+    boss.hp = 1;
     state.player.x = boss.x + boss.w - 30;
     state.player.y = boss.y - state.player.h + 1;
     state.player.vy = 6;
 
     stepMushroomRaftGame(state, idle, 1 / 60);
     expect(boss.phase).toBe(2);
+    expect(boss.hp).toBe(boss.maxHp);
+    expect(boss.x).toBe(5200);
     expect(boss.invincible).toBeGreaterThan(0);
   });
 
