@@ -1631,7 +1631,10 @@ function updateEnemies(state: MushroomRaftState, k: number) {
       ) {
         if (enemy.kind === "bubble") {
           enemy.vx = -enemy.vx;
-          enemy.x = enemy.x + enemy.vx * 4;
+          enemy.x =
+            enemy.vx < 0
+              ? raft.x - enemy.w - 1
+              : raft.x + raft.w + 1;
         } else {
           raft.hp -= 1;
           enemy.alive = false;
