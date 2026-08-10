@@ -122,7 +122,7 @@ describe("deep mushroom raft checks", () => {
     expect(state.projectiles.length).toBeGreaterThan(before);
   });
 
-  it("boss fires fireballs aimed at the player in phase one", () => {
+  it("boss fires fireballs from its body toward the player", () => {
     const state = createMushroomRaftGame(5);
     const boss = state.boss;
     if (!boss) throw new Error("no boss");
@@ -136,7 +136,10 @@ describe("deep mushroom raft checks", () => {
       (entry) => entry.kind === "fireball" && entry.alive,
     );
     expect(fired).toBeDefined();
-    expect(Math.abs(fired!.y - (state.player.y + state.player.h / 2 - 10))).toBeLessThan(8);
+    expect(Math.abs(fired!.y - (boss.y + 20))).toBeLessThan(8);
+    expect(Math.sign(fired!.vx)).toBe(
+      Math.sign(state.player.x - boss.x),
+    );
   });
 
   it("does not drown while invincible, then drowns after", () => {
