@@ -193,17 +193,17 @@ function drawFlooding(
   state: MushroomRaftState,
 ) {
   if (!state.boss || state.boss.phase !== 2 || !state.boss.flooding) return;
-  const gradient = context.createLinearGradient(0, 370, 0, 470);
-  gradient.addColorStop(0, "rgba(70,170,220,0.15)");
-  gradient.addColorStop(0.5, "rgba(45,135,200,0.55)");
-  gradient.addColorStop(1, "rgba(25,80,150,0.75)");
+  const gradient = context.createLinearGradient(0, WATER_Y, 0, RAFT_VIEW_HEIGHT);
+  gradient.addColorStop(0, "rgba(70,170,220,0.4)");
+  gradient.addColorStop(0.4, "rgba(45,135,200,0.7)");
+  gradient.addColorStop(1, "rgba(25,80,150,0.9)");
   context.fillStyle = gradient;
-  context.fillRect(0, 375, RAFT_VIEW_WIDTH, 95);
+  context.fillRect(0, WATER_Y, RAFT_VIEW_WIDTH, RAFT_VIEW_HEIGHT - WATER_Y);
   context.strokeStyle = "rgba(255,255,255,0.6)";
   context.lineWidth = 2;
   for (let x = -20; x < RAFT_VIEW_WIDTH + 20; x += 32) {
     const waveY =
-      400 +
+      WATER_Y + 8 +
       Math.sin((x * 0.7 + state.camera.x * 0.4 + state.time * 50) / 26) * 5;
     context.beginPath();
     context.moveTo(x, waveY);
