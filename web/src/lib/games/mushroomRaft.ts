@@ -2078,7 +2078,7 @@ function updateBoss(state: MushroomRaftState, k: number) {
       id: uid("b"),
       kind: "fireball",
       x: boss.x + boss.w / 2,
-      y: boss.y + 20,
+      y: target.y + target.h / 2 - 10,
       vx: target.x > boss.x ? (boss.phase === 1 ? 5.2 : 6.2) : (boss.phase === 1 ? -5.2 : -6.2),
       alive: true,
     });
@@ -2087,7 +2087,7 @@ function updateBoss(state: MushroomRaftState, k: number) {
         id: uid("b2"),
         kind: "fireball",
         x: boss.x + 30,
-        y: boss.y + 40,
+        y: target.y + target.h / 2 - 10,
         vx: target.x > boss.x ? 5.4 : -5.4,
         alive: true,
       });
