@@ -616,6 +616,32 @@ describe("mushroom raft engine", () => {
     expect(Math.sign(bubble.vx)).not.toBe(Math.sign(vxBefore));
   });
 
+  it("bubble enemies escape rafts instead of staying inside", () => {
+    const state = createMushroomRaftGame();
+    const raft = state.rafts[1];
+    const bubble = state.enemies.find((entry) => entry.kind === "bubble");
+    if (!bubble || !raft) return;
+    bubble.x = raft.x + raft.w / 2;
+    bubble.y = raft.y + raft.h / 2;
+    bubble.vx = 0.4;
+    raft.hp = 10;
+
+    let stuckFrames = 0;
+    for (let i = 0; i < 240; i += 1) {
+      stepMushroomRaftGame(state, idle, 1 / 60);
+      const current = state.enemies.find((entry) => entry.kind === "bubble");
+      if (!current) break;
+      const overlapping =
+        current.x < raft.x + raft.w &&
+        current.x + current.w > raft.x &&
+        current.y < raft.y + raft.h &&
+        current.y + current.h > raft.y;
+      if (overlapping) stuckFrames += 1;
+    }
+
+    expect(stuckFrames).toBeLessThan(10);
+  });
+
   it("lets a gliding player bounce and double-jump after popping a bubble", () => {
     const state = createMushroomRaftGame();
     const bubble = state.enemies.find((entry) => entry.kind === "bubble");
