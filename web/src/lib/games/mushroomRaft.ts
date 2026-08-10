@@ -179,6 +179,7 @@ export interface Enemy {
   shellTimer: number;
   homeX: number;
   raftId?: string;
+  chasePlayer?: boolean;
 }
 
 export interface Item {
@@ -206,6 +207,7 @@ export interface Raft {
   bob: number;
   shieldTimer: number;
   large?: boolean;
+  chasePlayer?: boolean;
 }
 
 export interface Projectile {
@@ -1503,8 +1505,19 @@ function updateEnemies(state: MushroomRaftState, k: number) {
     }
 
     if (enemy.kind === "goomba") {
+      if (enemy.chasePlayer) {
+        const target = players.reduce((best, current) =>
+          Math.abs(current.x - enemy.x) < Math.abs(best.x - enemy.x)
+            ? current
+            : best,
+        );
+        enemy.vx = (target.x > enemy.x ? 1 : -1) * Math.abs(enemy.vx);
+      }
       enemy.x += enemy.vx * k;
-      if (enemy.x < enemy.homeX - 70 || enemy.x + enemy.w > enemy.homeX + 70) {
+      if (
+        !enemy.chasePlayer &&
+        (enemy.x < enemy.homeX - 70 || enemy.x + enemy.w > enemy.homeX + 70)
+      ) {
         enemy.vx *= -1;
       }
     } else if (enemy.kind === "bubble") {
@@ -1556,8 +1569,19 @@ function updateEnemies(state: MushroomRaftState, k: number) {
         enemy.shellTimer = 150;
       }
     } else if (enemy.kind === "koopa") {
+      if (enemy.chasePlayer) {
+        const target = players.reduce((best, current) =>
+          Math.abs(current.x - enemy.x) < Math.abs(best.x - enemy.x)
+            ? current
+            : best,
+        );
+        enemy.vx = (target.x > enemy.x ? 1 : -1) * Math.abs(enemy.vx);
+      }
       enemy.x += enemy.vx * k;
-      if (enemy.x < enemy.homeX - 80 || enemy.x + enemy.w > enemy.homeX + 80) {
+      if (
+        !enemy.chasePlayer &&
+        (enemy.x < enemy.homeX - 80 || enemy.x + enemy.w > enemy.homeX + 80)
+      ) {
         enemy.vx *= -1;
       }
       enemy.y = 330 + Math.sin(enemy.timer / 18) * 14;
@@ -1800,6 +1824,10 @@ function updateRafts(state: MushroomRaftState, k: number) {
     );
     if (hasRider) {
       raft.x += (raft.speed + currentBonus) * k;
+    } else if (raft.chasePlayer) {
+      const direction =
+        state.player.x + state.player.w / 2 > raft.x + raft.w / 2 ? 1 : -1;
+      raft.x += direction * Math.abs(raft.speed) * k;
     }
     raft.bob += 0.08 * k;
     raft.shieldTimer = Math.max(0, raft.shieldTimer - k);
@@ -2073,7 +2101,9 @@ function updateBoss(state: MushroomRaftState, k: number) {
         : -chargeSpeed
       : boss.phase === 1
         ? 1.2
-        : 1.6;
+        : target.x > boss.x
+          ? 1.6
+          : -1.6;
     state.projectiles.push({
       id: uid("b"),
       kind: "fireball",
@@ -2109,10 +2139,14 @@ function updateBoss(state: MushroomRaftState, k: number) {
     const summonRaftId = uid("r");
     const raftMinion = makeEnemy("goomba", boss.x + 320, boss.x + 320, 396);
     raftMinion.raftId = summonRaftId;
+    const minionA = makeEnemy("koopa", boss.x - 170, boss.x - 170, 330);
+    const minionB = makeEnemy("goomba", boss.x + 420, boss.x + 420, 375);
+    minionA.chasePlayer = true;
+    minionB.chasePlayer = true;
     state.enemies.push(
       raftMinion,
-      makeEnemy("koopa", boss.x - 170, boss.x - 170, 330),
-      makeEnemy("goomba", boss.x + 420, boss.x + 420, 375),
+      minionA,
+      minionB,
     );
     state.rafts.push({
       id: summonRaftId,
@@ -2125,6 +2159,7 @@ function updateBoss(state: MushroomRaftState, k: number) {
       speed: 1.4,
       bob: 0,
       shieldTimer: 0,
+      chasePlayer: true,
     });
     boss.summonTimer = 170;
   }
