@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { networkInterfaces } from "node:os";
 import { Router } from "express";
 
 import { getDb } from "../db/index.js";
 import { HttpError } from "../utils/httpError.js";
+import { getLanAddresses } from "../utils/lanAddresses.js";
 
 const clients = new Map();
 
@@ -52,15 +52,7 @@ lanRouter.get("/health", (_req, res) => {
 });
 
 lanRouter.get("/ip", (_req, res) => {
-  const addresses = [];
-  for (const items of Object.values(networkInterfaces())) {
-    for (const item of items ?? []) {
-      if (item.family === "IPv4" && !item.internal) {
-        addresses.push(item.address);
-      }
-    }
-  }
-  res.json({ addresses });
+  res.json(getLanAddresses());
 });
 
 lanRouter.get("/rooms", (_req, res, next) => {
