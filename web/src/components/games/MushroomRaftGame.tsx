@@ -1013,15 +1013,15 @@ function render(
   for (const platform of state.platforms) {
     drawPlatform(context, platform, state.camera.x);
   }
+  for (const enemy of state.enemies) {
+    if (enemy.alive) drawEnemy(context, enemy, state.camera.x);
+  }
   for (const raft of state.rafts) {
     drawRaft(context, raft, state.camera.x);
   }
   drawFlooding(context, state);
   drawHazards(context, state.hazards, state.camera.x, state.time);
   if (state.boss) drawBoss(context, state.boss, state.camera.x);
-  for (const enemy of state.enemies) {
-    if (enemy.alive) drawEnemy(context, enemy, state.camera.x);
-  }
   for (const projectile of state.projectiles) {
     const x = projectile.x - state.camera.x;
     context.fillStyle =
