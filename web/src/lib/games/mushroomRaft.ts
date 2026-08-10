@@ -1653,6 +1653,13 @@ function updateProjectiles(state: MushroomRaftState, k: number) {
   for (const projectile of state.projectiles) {
     if (!projectile.alive) continue;
     projectile.x += projectile.vx * k;
+    if (
+      projectile.x < -300 ||
+      projectile.x > state.worldWidth + 300
+    ) {
+      projectile.alive = false;
+      continue;
+    }
 
     if (projectile.kind === "water") {
       for (const enemy of state.enemies) {
@@ -2095,9 +2102,9 @@ function updateBoss(state: MushroomRaftState, k: number) {
     state.enemies.filter((entry) => entry.alive).length < 14
   ) {
     state.enemies.push(
-      makeEnemy("goomba", boss.x - 170, boss.x - 170, 420),
+      makeEnemy("goomba", boss.x - 170, boss.x - 170, 375),
       makeEnemy("koopa", boss.x + 110, boss.x + 110, 330),
-      makeEnemy("goomba", boss.x + 230, boss.x + 230, 420),
+      makeEnemy("goomba", boss.x + 230, boss.x + 230, 375),
     );
     state.rafts.push({
       id: uid("r"),
