@@ -1499,17 +1499,20 @@ function updateEnemies(state: MushroomRaftState, k: number) {
     } else if (enemy.kind === "bubble") {
       const nextX = enemy.x + enemy.vx * k;
       enemy.y = WATER_Y - enemy.h + Math.sin(enemy.timer / 16) * 8;
-      const ground = state.platforms.find(
+      const blocked = state.platforms.find(
         (platform) =>
           platform.kind === "ground" &&
           nextX + enemy.w > platform.x &&
           nextX < platform.x + platform.w &&
-          enemy.y + enemy.h > platform.y &&
-          enemy.y < platform.y + platform.h,
+          WATER_Y > platform.y &&
+          WATER_Y < platform.y + platform.h,
       );
-      if (ground) {
-        enemy.vx *= -1;
-        enemy.x = nextX + enemy.vx * 2;
+      if (blocked) {
+        enemy.vx = -enemy.vx;
+        enemy.x =
+          enemy.vx < 0
+            ? blocked.x - enemy.w - 1
+            : blocked.x + blocked.w + 1;
       } else {
         enemy.x = nextX;
       }
@@ -1616,9 +1619,14 @@ function updateEnemies(state: MushroomRaftState, k: number) {
           enemy.h,
         )
       ) {
-        raft.hp -= 1;
-        enemy.alive = false;
-        setMessage(state, "小船受损！");
+        if (enemy.kind === "bubble") {
+          enemy.vx = -enemy.vx;
+          enemy.x = enemy.x + enemy.vx * 4;
+        } else {
+          raft.hp -= 1;
+          enemy.alive = false;
+          setMessage(state, "小船受损！");
+        }
       }
     }
   }
@@ -2184,6 +2192,17 @@ function updateBoss(state: MushroomRaftState, k: number) {
     }
   }
 
+  maybeAdvanceBossPhase(state);
+
+  if (boss.hp <= 0) {
+    boss.alive = false;
+    setMessage(state, "库巴的巨船被击败了！冲向终点！");
+  }
+}
+
+function maybeAdvanceBossPhase(state: MushroomRaftState) {
+  const boss = state.boss;
+  if (!boss || !boss.alive) return;
   if (boss.phase === 1 && boss.hp <= Math.floor(boss.maxHp / 2)) {
     boss.phase = 2;
     boss.x = 5200;
@@ -2192,11 +2211,6 @@ function updateBoss(state: MushroomRaftState, k: number) {
     boss.summonTimer = 120;
     boss.vx *= 1.4;
     setMessage(state, "库巴跳上甲板，进入第二阶段！小心冲撞和喷火！");
-  }
-
-  if (boss.hp <= 0) {
-    boss.alive = false;
-    setMessage(state, "库巴的巨船被击败了！冲向终点！");
   }
 }
 
