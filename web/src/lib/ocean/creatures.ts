@@ -254,7 +254,7 @@ export class CreatureField {
 
     if (meta.isRay) {
       const ray = createRay(kind as RayModel["species"]);
-      ray.group.scale.setScalar(kind === "stingray" ? 1.15 : 1.12 + Math.random() * 0.2);
+      ray.group.scale.setScalar(kind === "stingray" ? 1.18 : kind === "manta" ? 1.28 : 1.2 + Math.random() * 0.12);
       creature.ray = ray;
       creature.group.add(ray.group);
       creature.shadow = ray.shadow;
@@ -434,7 +434,7 @@ export class CreatureField {
     const sand = terrainHeight(creature.position.x, creature.position.z);
     const targetY = isStingray
       ? Math.max(sand + 0.22, WATER_MIN)
-      : THREE.MathUtils.clamp(sand * 0.3 - 1.1, WATER_MIN, -1.1);
+      : THREE.MathUtils.clamp(sand * 0.12 - 0.35, -0.78, -0.55);
     creature.position.y += (targetY - creature.position.y) * Math.min(1, dt * 1.1);
 
     creature.group.rotation.x = THREE.MathUtils.lerp(creature.group.rotation.x, -creature.velocity.y * 0.2, dt * 2);

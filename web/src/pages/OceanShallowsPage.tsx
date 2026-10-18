@@ -170,7 +170,11 @@ export default function OceanShallowsPage() {
 
       <div className="os-ui">
         <header className="os-header">
-          <h1 className="os-title">Ocean Shallows</h1>
+          <p className="os-kicker">A living tidal pool</p>
+          <h1 className="os-title">
+            <span>Ocean</span>
+            <em>Shallows</em>
+          </h1>
           <p className="os-counter" aria-live="polite">
             {formatCount(counts.rays, "ray", "rays")} ·{" "}
             {formatCount(counts.jellies, "jelly", "jellies")}

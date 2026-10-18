@@ -246,7 +246,7 @@ export const WATER_FRAGMENT = /* glsl */ `
     vec2 uv = vec2(local.x, -local.y) / (uPalmRect.z * 2.0) + 0.5;
     if (uv.x < 0.02 || uv.x > 0.98 || uv.y < 0.02 || uv.y > 0.98) return 0.0;
     float s = 0.0;
-    float e = 1.5 / 256.0;
+    float e = 1.5 / 1024.0;
     s += texture2D(uPalmTex, uv).r * 0.36;
     s += texture2D(uPalmTex, uv + vec2(e, 0.0)).r * 0.16;
     s += texture2D(uPalmTex, uv - vec2(e, 0.0)).r * 0.16;
@@ -277,9 +277,9 @@ export const WATER_FRAGMENT = /* glsl */ `
     vec2 m1 = normalize(vec2(0.92, 0.4));
     vec2 m2 = normalize(vec2(-0.55, 1.0));
     vec2 m3 = normalize(vec2(0.35, -0.94));
-    grad += m1 * cos(dot(p, m1) * 2.2 + t * 1.5) * 0.032;
-    grad += m2 * cos(dot(p, m2) * 4.3 - t * 2.0) * 0.018;
-    grad += m3 * cos(dot(p, m3) * 7.1 + t * 2.7) * 0.009;
+    grad += m1 * cos(dot(p, m1) * 2.6 + t * 1.5) * 0.048;
+    grad += m2 * cos(dot(p, m2) * 4.8 - t * 2.0) * 0.026;
+    grad += m3 * cos(dot(p, m3) * 8.2 + t * 2.7) * 0.012;
 
     float sw = 0.8 * uSwell;
     float e = 0.55;
@@ -308,29 +308,53 @@ export const WATER_FRAGMENT = /* glsl */ `
     vec3 below = texture2D(uRefract, clamp(screenUv + offset, vec2(0.002), vec2(0.998))).rgb;
 
     vec3 sh = swash(p, uTime);
-    float caustic = caustics(p, uTime) * smoothstep(0.0, 1.6, depth);
-    below *= 1.0 + min(caustic, 0.9) * 0.16;
+    float caustic = caustics(p, uTime) * smoothstep(0.0, 1.25, depth);
+    below *= 1.0 + min(caustic, 2.1) * 0.33;
 
-    // --- depth colour: absorption + scattering ---------------------------
-    float dn = smoothstep(0.0, 7.0, depth);
-    vec3 absorb = exp(-depth * vec3(0.26, 0.09, 0.055));
-    vec3 scatter = mix(vec3(0.16, 0.72, 0.70), vec3(0.02, 0.17, 0.44), dn);
-    float milk = 1.0 - exp(-depth * 0.3);
-    vec3 color = below * absorb * 0.95 + scatter * milk * 0.5;
+    // --- depth colour: clear emerald shallows fading to teal -------------
+    float dn = smoothstep(0.0, 8.5, depth);
+    vec3 absorb = exp(-depth * vec3(0.155, 0.052, 0.043));
+    vec3 scatter = mix(vec3(0.46, 0.69, 0.42), vec3(0.065, 0.18, 0.19), dn);
+    float milk = 1.0 - exp(-depth * 0.5);
+    vec3 color = below * absorb * 1.16 + scatter * milk * 0.52;
+
+    // Sunlit shallows glow warm green; the deeper flats stay saturated teal.
+    float shallowWash = 1.0 - smoothstep(0.0, 7.5, depth);
+    color += vec3(0.15, 0.12, 0.05) * shallowWash;
+    color += vec3(0.026, 0.024, 0.008);
+
+    // Deeper water picks up the darker sapphire-green seen in the reference.
+    float deepShade = smoothstep(3.0, 12.0, depth);
+    color = mix(color, vec3(0.045, 0.105, 0.135), deepShade * 0.28);
 
     // Wet sand reads through the very thin film at the waterline.
     float film = 1.0 - smoothstep(0.0, 0.5, depth);
-    color = mix(color, mix(below, vec3(0.62, 0.90, 0.86), 0.3), film * 0.5);
+    color = mix(color, mix(below, vec3(0.78, 0.85, 0.58), 0.3), film * 0.42);
+
+    // The grazing sun warms the surface without washing out the coral below.
+    float sunDiffuse = max(dot(normal, uSunDir), 0.0);
+    color *= 0.92 + sunDiffuse * 0.2;
+    color += vec3(0.46, 0.58, 0.15) * smoothstep(0.1, 3.8, depth) * 0.085;
+    float causticSurface = caustics(p * 1.55 + vec2(4.7, -2.2), uTime * 1.08);
+    float causticLine = smoothstep(0.22, 0.86, causticSurface);
+    color += vec3(0.9, 0.98, 0.68) * min(causticSurface, 2.0) * 0.085 * smoothstep(0.15, 2.8, depth);
+    color += vec3(0.56, 0.74, 0.34) * causticLine * 0.11 * smoothstep(0.1, 3.0, depth);
+    float sandRidge = sin((p.x * 1.16 + p.y * 0.42) * 2.9 + fbm2(p * 0.31) * 7.2);
+    float ridgeBand = smoothstep(0.55, 0.96, sandRidge * 0.5 + 0.5);
+    color += vec3(0.28, 0.3, 0.1) * ridgeBand * (1.0 - smoothstep(0.4, 5.5, depth)) * 0.13;
 
     // --- sky reflection + sun glitter -----------------------------------
     float fres = pow(1.0 - clamp(dot(normal, viewDir), 0.0, 1.0), 4.0);
-    vec3 sky = mix(uHorizon, vec3(0.78, 0.92, 0.98), 0.5);
-    color = mix(color, sky, clamp(fres * 0.85, 0.0, 0.55));
+    vec3 sky = mix(uHorizon, vec3(0.82, 0.95, 0.84), 0.52);
+    color = mix(color, sky, clamp(fres * 0.52, 0.0, 0.38));
 
     vec3 halfVec = normalize(uSunDir + viewDir);
-    float spec = pow(max(dot(normal, halfVec), 0.0), 160.0);
-    float sparkleNoise = noise2(p * 6.5 + vec2(uTime * 0.4, -uTime * 0.33));
-    color += vec3(1.0, 0.97, 0.9) * (spec * 0.3 + spec * smoothstep(0.55, 0.9, sparkleNoise) * 0.12);
+    float spec = pow(max(dot(normal, halfVec), 0.0), 210.0);
+    float sparkleNoise = noise2(p * 8.0 + vec2(uTime * 0.45, -uTime * 0.36));
+    color += vec3(1.0, 0.97, 0.82) * (spec * 0.22 + spec * smoothstep(0.6, 0.92, sparkleNoise) * 0.1);
+    float glint = pow(max(dot(normal, halfVec), 0.0), 22.0);
+    float glintMask = smoothstep(0.86, 0.97, noise2(p * 17.0 + vec2(uTime * 0.8, -uTime * 0.55)));
+    color += vec3(1.0, 0.95, 0.72) * glint * glintMask * 0.26;
 
     // --- foam -----------------------------------------------------------
     float crest = smoothstep(0.55, 1.05, swellH(p, uTime) * uSwell * 0.5 + 0.5 + grad.y * 0.35);
@@ -345,14 +369,14 @@ export const WATER_FRAGMENT = /* glsl */ `
 
     // --- palm shadow ----------------------------------------------------
     float shadow = palmShadow(p);
-    color *= 1.0 - shadow * 0.26;
+    color *= 1.0 - shadow * 0.62;
 
     // --- rain -----------------------------------------------------------
     color += vec3(0.05) * uRain * (0.5 + 0.5 * noise2(p * 14.0 + uTime));
 
     // --- distance haze --------------------------------------------------
     float dist = length(vWorld - uCamPos);
-    float haze = smoothstep(70.0, 300.0, dist);
+    float haze = smoothstep(90.0, 340.0, dist);
     color = mix(color, uHorizon, haze);
 
     gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
@@ -381,19 +405,19 @@ export function createWater(options: {
     uSimExtent: { value: SIM_EXTENT },
     uRefract: { value: null },
     uResolution: { value: new THREE.Vector2(1, 1) },
-    uSunDir: { value: new THREE.Vector3(-0.42, 0.86, -0.3).normalize() },
+    uSunDir: { value: new THREE.Vector3(-0.48, 0.82, -0.3).normalize() },
     uCamPos: { value: new THREE.Vector3() },
     uPalmTex: { value: options.palmTexture },
     uPalmRect: { value: options.palmRect },
     uPalmOffset: { value: new THREE.Vector2() },
     uWhirl: { value: new THREE.Vector3(0, 0, 0) },
     uRain: { value: 0 },
-    uHorizon: { value: new THREE.Vector3(0.62, 0.82, 0.9) },
+    uHorizon: { value: new THREE.Vector3(0.69, 0.86, 0.77) },
     uQuality: { value: 1 },
     uSwell: { value: 1 },
   };
 
-  const geometry = new THREE.PlaneGeometry(1500, 1500, 240, 240);
+  const geometry = new THREE.PlaneGeometry(1500, 1500, 320, 320);
   geometry.rotateX(-Math.PI / 2);
 
   const material = new THREE.ShaderMaterial({

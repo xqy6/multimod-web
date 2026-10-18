@@ -28,10 +28,10 @@ type Options = {
   onQualityChange?: (quality: number) => void;
 };
 
-const DEEP_CLEAR = new THREE.Color(0.016, 0.075, 0.2);
-const HORIZON = new THREE.Color(0.62, 0.82, 0.9);
-const CAMERA_HEIGHT = 48;
-const CAMERA_DISTANCE = 13;
+const DEEP_CLEAR = new THREE.Color(0.018, 0.135, 0.175);
+const HORIZON = new THREE.Color(0.69, 0.86, 0.77);
+const CAMERA_HEIGHT = 32;
+const CAMERA_DISTANCE = 15;
 
 export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {}): OceanController {
   THREE.ColorManagement.enabled = false;
@@ -47,7 +47,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {
   renderer.autoClear = false;
   renderer.setClearColor(HORIZON, 1);
 
-  const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.75);
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
   renderer.setPixelRatio(pixelRatio);
 
   const scene = new THREE.Scene();
@@ -56,15 +56,19 @@ export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {
   camera.lookAt(0, 0, 0);
 
   // --- lights -------------------------------------------------------
-  const sunDirection = new THREE.Vector3(-0.42, 0.86, -0.3).normalize();
-  const sun = new THREE.DirectionalLight(0xfff3df, 2.1);
-  sun.position.copy(sunDirection).multiplyScalar(60);
+  const sunDirection = new THREE.Vector3(-0.48, 0.82, -0.3).normalize();
+  const sun = new THREE.DirectionalLight(0xfff2cf, 2.35);
+  sun.position.copy(sunDirection).multiplyScalar(70);
   sun.layers.enableAll();
   scene.add(sun);
-  const fill = new THREE.HemisphereLight(0xbfe6f2, 0x3a4a4f, 1.35);
+  const bounce = new THREE.DirectionalLight(0x8fe1ce, 0.38);
+  bounce.position.set(26, 18, -22);
+  bounce.layers.enableAll();
+  scene.add(bounce);
+  const fill = new THREE.HemisphereLight(0xdff8f1, 0x3f5144, 0.95);
   fill.layers.enableAll();
   scene.add(fill);
-  const ambient = new THREE.AmbientLight(0x9cc9d6, 0.55);
+  const ambient = new THREE.AmbientLight(0xb7ded2, 0.3);
   ambient.layers.enableAll();
   scene.add(ambient);
 
@@ -77,7 +81,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {
     terrain: terrainTexture,
     palmTexture: palm.shadowUniforms.palmTexture,
     palmRect: palm.shadowUniforms.palmRect,
-    segments: 220,
+    segments: 320,
   });
   scene.add(terrain.group);
 
@@ -127,7 +131,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {
 
   // --- sizing -------------------------------------------------------
   let quality = 1;
-  let rtScale = 0.75;
+  let rtScale = 0.9;
 
   function resize() {
     const width = canvas.clientWidth || window.innerWidth;
@@ -136,11 +140,13 @@ export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {
     renderer.setSize(width, height, false);
     const aspect = width / height;
     camera.aspect = aspect;
-    // Portrait screens need to pull back and pan up-left so the beach stays in frame.
+    // Portrait screens keep the curved beach in the upper corner while leaving
+    // enough water in the middle of the frame for the creatures to remain visible.
     const portrait = THREE.MathUtils.clamp((1.2 - aspect) / 0.7, 0, 1);
-    const zoom = 1 + portrait * 0.34;
-    const targetX = -12 * portrait;
-    const targetZ = -6 * portrait;
+    const zoom = 1 + portrait * 0.2;
+    const targetX = -4 * portrait;
+    const targetZ = -2 * portrait;
+    camera.fov = THREE.MathUtils.lerp(42, 48, portrait);
     camera.position.set(targetX, CAMERA_HEIGHT * zoom, targetZ + CAMERA_DISTANCE * zoom);
     camera.lookAt(targetX, 0, targetZ);
     camera.updateProjectionMatrix();
@@ -237,11 +243,19 @@ export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {
   // --- intro creatures ---------------------------------------------
   const introTimers: number[] = [];
   let introCancelled = false;
-  const introPlan: CreatureKind[] = ["manta", "eagle", "moon", "stingray", "moon", "eagle", "nettle"];
-  introPlan.forEach((kind, index) => {
+  const introPlan: { kind: CreatureKind; target: THREE.Vector2 }[] = [
+    { kind: "manta", target: new THREE.Vector2(5, -2) },
+    { kind: "eagle", target: new THREE.Vector2(-5, 4) },
+    { kind: "moon", target: new THREE.Vector2(8, 5) },
+    { kind: "stingray", target: new THREE.Vector2(-2, 8) },
+    { kind: "moon", target: new THREE.Vector2(9, -5) },
+    { kind: "eagle", target: new THREE.Vector2(-8, -3) },
+    { kind: "nettle", target: new THREE.Vector2(4, 8) },
+  ];
+  introPlan.forEach(({ kind, target }, index) => {
     introTimers.push(
       window.setTimeout(() => {
-        if (!introCancelled) field.spawn(kind);
+        if (!introCancelled) field.spawn(kind, { target });
       }, 700 + index * 520),
     );
   });
@@ -322,14 +336,14 @@ export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {
       frameCount = 0;
       if (average > 0.028 && quality < 3) {
         quality++;
-        rtScale = quality === 2 ? 0.6 : 0.45;
+        rtScale = quality === 2 ? 0.7 : 0.5;
         renderTarget.dispose();
         renderTarget = makeTarget(rtScale);
         resize();
         options.onQualityChange?.(quality);
       } else if (average < 0.0135 && quality > 1) {
         quality--;
-        rtScale = quality === 1 ? 0.75 : 0.6;
+        rtScale = quality === 1 ? 0.9 : 0.7;
         renderTarget.dispose();
         renderTarget = makeTarget(rtScale);
         resize();

@@ -7,7 +7,7 @@ import { createJelly, createRay } from "./models";
  * Renders each dock thumbnail from the actual in-scene 3D model, so the cards
  * always match what gets thrown into the water.
  */
-export function renderCreatureThumbnails(size = { width: 288, height: 200 }) {
+export function renderCreatureThumbnails(size = { width: 384, height: 256 }) {
   const result: Partial<Record<CreatureKind, string>> = {};
   const canvas = document.createElement("canvas");
   canvas.width = size.width;

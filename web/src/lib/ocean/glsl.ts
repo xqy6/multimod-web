@@ -75,13 +75,21 @@ export const COMMON = /* glsl */ `
 
   // Moving caustic web projected on the seabed.
   float caustics(vec2 p, float t) {
-    vec2 q = p * 0.34;
-    float a = sin(q.x * 2.3 + t * 0.8) + sin(q.y * 1.9 - t * 1.05) + sin((q.x + q.y) * 1.45 + t * 0.55);
-    float b = sin(q.x * 4.1 - t * 1.35) + sin(q.y * 3.4 + t * 0.9);
-    float web = abs(a) * 0.45 + abs(b) * 0.22;
-    float v = pow(clamp(1.0 - web, 0.0, 1.0), 5.0);
-    float n = fbm2(q * 1.7 + vec2(t * 0.1, -t * 0.08));
-    return v * (0.35 + 0.9 * n) * 2.2;
+    vec2 q = p * 0.48;
+    q += vec2(
+      noise2(p * 0.17 + t * 0.03),
+      noise2(p * 0.17 + 17.1 - t * 0.026)
+    ) * 0.72;
+    float a = sin(q.x * 3.15 + t * 0.82)
+            + sin(q.y * 2.72 - t * 1.02)
+            + sin((q.x + q.y) * 2.12 + t * 0.62);
+    float b = sin(q.x * 5.35 - t * 1.3)
+            + sin(q.y * 4.73 + t * 0.94)
+            + sin((q.x - q.y) * 3.82 - t * 0.7);
+    float broad = pow(clamp(1.0 - (abs(a) * 0.42 + abs(b) * 0.16), 0.0, 1.0), 4.0);
+    float fine = pow(clamp(1.0 - (abs(a) * 0.13 + abs(b) * 0.5), 0.0, 1.0), 7.0);
+    float n = fbm2(q * 1.9 + vec2(t * 0.09, -t * 0.075));
+    return clamp((broad + fine * 0.46) * (0.28 + 0.96 * n), 0.0, 2.8);
   }
 `;
 

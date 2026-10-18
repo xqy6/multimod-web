@@ -16,7 +16,7 @@ function canvasTexture(
   const texture = new THREE.CanvasTexture(canvas);
   texture.flipY = false;
   texture.colorSpace = THREE.NoColorSpace;
-  texture.anisotropy = 4;
+  texture.anisotropy = 8;
   return texture;
 }
 
@@ -52,11 +52,11 @@ const rayTextures: Partial<Record<string, THREE.CanvasTexture>> = {};
 function rayTexture(kind: string) {
   const cached = rayTextures[kind];
   if (cached) return cached;
-  const texture = canvasTexture(256, (ctx, size) => {
+  const texture = canvasTexture(512, (ctx, size) => {
     if (kind === "manta-back") {
       const grad = ctx.createLinearGradient(0, 0, 0, size);
-      grad.addColorStop(0, "#43566b");
-      grad.addColorStop(1, "#243040");
+      grad.addColorStop(0, "#1d2731");
+      grad.addColorStop(1, "#080d12");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, size, size);
       ctx.fillStyle = "rgba(214,236,245,0.92)";
@@ -134,7 +134,7 @@ const silhouetteCache: Partial<Record<string, THREE.CanvasTexture>> = {};
 function silhouetteTexture(species: RaySpecies) {
   const cached = silhouetteCache[species];
   if (cached) return cached;
-  const texture = canvasTexture(128, (ctx, size) => {
+  const texture = canvasTexture(256, (ctx, size) => {
     ctx.clearRect(0, 0, size, size);
     ctx.fillStyle = "#fff";
     if (species === "stingray") {
@@ -205,8 +205,8 @@ function buildWingSheets(options: {
   chordTip: number;
 }) {
   const { span, length, thickness, sweep, chordBase, chordTip } = options;
-  const ns = 26;
-  const nc = 16;
+  const ns = 64;
+  const nc = 36;
   const sheets: SheetBuilder[] = [
     { positions: [], uvs: [], spans: [], chords: [], indices: [] },
     { positions: [], uvs: [], spans: [], chords: [], indices: [] },
@@ -253,8 +253,8 @@ function buildWingSheets(options: {
 
 function buildDiscSheets(options: { radiusX: number; radiusZ: number; thickness: number }) {
   const { radiusX, radiusZ, thickness } = options;
-  const rings = 14;
-  const segments = 40;
+  const rings = 36;
+  const segments = 128;
   const sheets: SheetBuilder[] = [
     { positions: [], uvs: [], spans: [], chords: [], indices: [] },
     { positions: [], uvs: [], spans: [], chords: [], indices: [] },
@@ -318,8 +318,8 @@ function buildTail(options: {
   color: number;
   stripes?: boolean;
 }) {
-  const segments = options.segments ?? 18;
-  const sides = 5;
+  const segments = options.segments ?? 56;
+  const sides = 12;
   const positions: number[] = [];
   const indices: number[] = [];
   const along: number[] = [];
@@ -403,11 +403,13 @@ export function createRay(species: RaySpecies): RayModel {
   };
 
   const makeMaterial = (map: THREE.Texture, color: number) => {
-    const material = new THREE.MeshStandardMaterial({
+    const material = new THREE.MeshPhysicalMaterial({
       map,
       color,
-      roughness: 0.62,
-      metalness: 0.05,
+      roughness: 0.48,
+      metalness: 0.03,
+      clearcoat: 0.38,
+      clearcoatRoughness: 0.58,
       side: THREE.DoubleSide,
     });
     attachAnimation(material);
@@ -423,6 +425,26 @@ export function createRay(species: RaySpecies): RayModel {
     const tail = buildTail({ length: 1.5, baseWidth: 0.07, color: 0x7c6440, stripes: true });
     tail.position.z = 1.1;
     group.add(tail);
+    const eyeMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x14171b,
+      roughness: 0.16,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.12,
+    });
+    materials.push(eyeMaterial);
+    for (const sx of [-1, 1]) {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.055, 28, 20), eyeMaterial);
+      eye.position.set(sx * 0.38, 0.16, -0.42);
+      group.add(eye);
+    }
+    const spine = new THREE.Mesh(
+      new THREE.ConeGeometry(0.022, 0.5, 16, 4),
+      new THREE.MeshPhysicalMaterial({ color: 0xd8c9a5, roughness: 0.4, clearcoat: 0.35 }),
+    );
+    materials.push(spine.material as THREE.Material);
+    spine.rotation.x = -0.3;
+    spine.position.set(0, 0.04, 1.95);
+    group.add(spine);
     const span = 4.2;
     const length = 3.6;
     return { species, group, span, length, flap, shadow: makeShadow("stingray", span, length), tail, materials };
@@ -448,22 +470,34 @@ export function createRay(species: RaySpecies): RayModel {
   group.add(top, bottom);
 
   if (isManta) {
-    const finMaterial = new THREE.MeshStandardMaterial({ color: 0x232a33, roughness: 0.65 });
+    const finMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x1b242d,
+      roughness: 0.48,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.55,
+    });
     materials.push(finMaterial);
     for (const sx of [-1, 1]) {
-      const fin = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.62, 6), finMaterial);
-      fin.rotation.x = -Math.PI * 0.42;
-      fin.rotation.z = sx * 0.12;
-      fin.position.set(sx * 0.26, 0.05, -1.42);
-      fin.scale.set(1, 1, 0.5);
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(sx * 0.28, 0.03, -1.25),
+        new THREE.Vector3(sx * 0.33, 0.1, -1.52),
+        new THREE.Vector3(sx * 0.25, 0.16, -1.78),
+      ]);
+      const fin = new THREE.Mesh(new THREE.TubeGeometry(curve, 28, 0.055, 10, false), finMaterial);
+      fin.scale.set(1.0, 0.72, 1.0);
       group.add(fin);
     }
   }
 
-  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x0d1116, roughness: 0.25 });
+  const eyeMaterial = new THREE.MeshPhysicalMaterial({
+    color: 0x0d1116,
+    roughness: 0.18,
+    clearcoat: 0.8,
+    clearcoatRoughness: 0.15,
+  });
   materials.push(eyeMaterial);
   for (const sx of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), eyeMaterial);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 28, 20), eyeMaterial);
     eye.position.set(sx * 0.34, 0.1, -1.18);
     group.add(eye);
   }
@@ -631,12 +665,19 @@ const JELLY_BELL_FRAGMENT = /* glsl */ `
   void main() {
     vec3 n = normalize(vNormalW);
     vec3 viewDir = normalize(cameraPosition - vWorld);
-    float fres = pow(1.0 - abs(dot(n, viewDir)), 2.4);
-    vec3 color = mix(uInner, uRim, fres);
-    float stripes = smoothstep(0.55, 0.95, sin(vUv.x * 6.2831853 * 14.0) * 0.5 + 0.5);
+    vec3 lightDir = normalize(vec3(-0.48, 0.82, -0.3));
+    float fres = pow(1.0 - abs(dot(n, viewDir)), 2.1);
+    float glow = pow(max(dot(n, lightDir), 0.0), 1.6);
+    vec3 color = mix(uInner, uRim, fres * 0.9 + glow * 0.08);
+    float radial = sin(vUv.x * 6.2831853 * 24.0) * 0.5 + 0.5;
+    float stripes = smoothstep(0.58, 0.96, radial) * smoothstep(0.04, 0.42, vUv.y);
     color = mix(color, uStripe, stripes * uStripeAmount);
-    float alpha = uOpacity * (0.22 + 0.85 * fres);
-    alpha *= 0.8 + 0.2 * sin(uTime * 2.0 + vUv.y * 6.0);
+    vec3 halfDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(n, halfDir), 0.0), 56.0);
+    color += vec3(1.0, 0.94, 0.76) * spec * (0.34 + fres * 0.26);
+    color += uRim * glow * 0.05;
+    float alpha = uOpacity * (0.2 + 0.9 * fres);
+    alpha *= 0.84 + 0.16 * sin(uTime * 2.0 + vUv.y * 6.0);
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -676,7 +717,7 @@ export function createJelly(species: JellySpecies): JellyModel {
   const bellRadius = moon ? 0.62 : 0.5;
 
   const profile: THREE.Vector2[] = [];
-  const profileSteps = 18;
+  const profileSteps = 64;
   for (let i = 0; i <= profileSteps; i++) {
     const t = i / profileSteps;
     const r = Math.pow(Math.sin(t * Math.PI * 0.56), 0.75) * bellRadius;
@@ -687,7 +728,7 @@ export function createJelly(species: JellySpecies): JellyModel {
   profile.push(new THREE.Vector2(bellRadius * 1.06, -bellRadius * 0.28));
   profile.push(new THREE.Vector2(bellRadius * 0.92, -bellRadius * 0.16));
 
-  const bellGeometry = new THREE.LatheGeometry(profile, 48);
+  const bellGeometry = new THREE.LatheGeometry(profile, 128);
   const bellMaterial = new THREE.ShaderMaterial({
     uniforms: {
       uInner: { value: new THREE.Color(moon ? 0xdff3f6 : 0xf0b46a) },
@@ -718,7 +759,7 @@ export function createJelly(species: JellySpecies): JellyModel {
     });
     materials.push(gonadMaterial);
     for (let i = 0; i < 4; i++) {
-      const gonad = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.035, 6, 12, Math.PI * 1.15), gonadMaterial);
+      const gonad = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.038, 12, 36, Math.PI * 1.15), gonadMaterial);
       gonad.position.set(Math.cos((i / 4) * Math.PI * 2) * 0.17, 0.16, Math.sin((i / 4) * Math.PI * 2) * 0.17);
       gonad.rotation.set(Math.PI / 2, (i / 4) * Math.PI * 2, 0);
       group.add(gonad);
@@ -730,11 +771,20 @@ export function createJelly(species: JellySpecies): JellyModel {
       depthWrite: false,
     });
     materials.push(canalMaterial);
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const canal = new THREE.Mesh(new THREE.BoxGeometry(bellRadius * 0.85, 0.008, 0.012), canalMaterial);
-      canal.position.set(Math.cos(angle) * bellRadius * 0.45, 0.1, Math.sin(angle) * bellRadius * 0.45);
-      canal.rotation.y = -angle;
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      const start = new THREE.Vector3(Math.cos(angle) * 0.04, 0.11, Math.sin(angle) * 0.04);
+      const end = new THREE.Vector3(
+        Math.cos(angle) * bellRadius * 0.9,
+        0.03,
+        Math.sin(angle) * bellRadius * 0.9,
+      );
+      const mid = start.clone().lerp(end, 0.48);
+      mid.y += 0.045;
+      const canal = new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3([start, mid, end]), 18, 0.007, 6, false),
+        canalMaterial,
+      );
       group.add(canal);
     }
   } else {
@@ -745,7 +795,7 @@ export function createJelly(species: JellySpecies): JellyModel {
       opacity: 0.9,
     });
     materials.push(stomachMaterial);
-    const stomach = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), stomachMaterial);
+    const stomach = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 20), stomachMaterial);
     stomach.position.y = 0.14;
     stomach.scale.set(1, 0.8, 1);
     group.add(stomach);
@@ -762,7 +812,7 @@ export function createJelly(species: JellySpecies): JellyModel {
     materials.push(fringeMaterial);
     for (let i = 0; i < 2; i++) {
       const fringe = new THREE.Mesh(
-        new THREE.TorusGeometry(bellRadius * (1.0 + i * 0.04), 0.012, 4, 48),
+        new THREE.TorusGeometry(bellRadius * (1.0 + i * 0.04), 0.01, 8, 128),
         fringeMaterial,
       );
       fringe.rotation.x = Math.PI / 2;
@@ -773,24 +823,26 @@ export function createJelly(species: JellySpecies): JellyModel {
 
   const tentacles: CameraRibbon[] = [];
   const tips: THREE.Vector3[] = [];
-  const tentacleCount = moon ? 10 : 8;
-  const tentacleLength = moon ? 0.9 : 3.2;
+  const tentacleCount = moon ? 18 : 16;
+  const tentacleLength = moon ? 1.05 : 3.2;
   const tentacleColor = new THREE.Color(moon ? 0xe7f6fa : 0xf3e3c8);
 
   for (let i = 0; i < tentacleCount; i++) {
     const angle = (i / tentacleCount) * Math.PI * 2 + (moon ? 0.12 : 0);
     const ribbon = new CameraRibbon({
-      segments: 12,
-      width: moon ? 0.035 : 0.055,
+      segments: 22,
+      width: moon ? 0.026 : 0.045,
       color: tentacleColor,
-      opacity: moon ? 0.5 : 0.62,
-      fade: 0.35,
+      opacity: moon ? 0.52 : 0.64,
+      fade: 0.32,
     });
     ribbon.mesh.userData.anchor = new THREE.Vector3(
       Math.cos(angle) * bellRadius * 1.02,
       -bellRadius * 0.24,
       Math.sin(angle) * bellRadius * 1.02,
     );
+    ribbon.mesh.userData.length = tentacleLength * (0.78 + Math.random() * 0.38);
+    ribbon.mesh.userData.phase = i * 1.31;
     ribbon.mesh.layers.set(2);
     tentacles.push(ribbon);
     tips.push(new THREE.Vector3());
@@ -799,20 +851,20 @@ export function createJelly(species: JellySpecies): JellyModel {
 
   // Frilly oral arms for the sea nettle.
   const arms: CameraRibbon[] = [];
-  if (!moon) {
-    for (let i = 0; i < 4; i++) {
-      const ribbon = new CameraRibbon({
-        segments: 10,
-        width: 0.22,
-        color: new THREE.Color(0xf7ead6),
-        opacity: 0.45,
-        fade: 0.4,
-      });
-      ribbon.mesh.userData.angle = (i / 4) * Math.PI * 2;
-      ribbon.mesh.layers.set(2);
-      arms.push(ribbon);
-      group.add(ribbon.mesh);
-    }
+  const armCount = moon ? 4 : 6;
+  for (let i = 0; i < armCount; i++) {
+    const ribbon = new CameraRibbon({
+      segments: 24,
+      width: moon ? 0.075 : 0.2 + (i % 2) * 0.04,
+      color: new THREE.Color(moon ? 0xeaf9fb : 0xf7ead6),
+      opacity: moon ? 0.26 : 0.46,
+      fade: 0.36,
+    });
+    ribbon.mesh.userData.angle = (i / armCount) * Math.PI * 2;
+    ribbon.mesh.userData.length = moon ? 1.15 : 1.9 + (i % 3) * 0.16;
+    ribbon.mesh.layers.set(2);
+    arms.push(ribbon);
+    group.add(ribbon.mesh);
   }
 
   const pointsBuffer = new THREE.Vector3();
@@ -836,15 +888,16 @@ export function createJelly(species: JellySpecies): JellyModel {
       const anchor = ribbon.mesh.userData.anchor as THREE.Vector3;
       worldAnchor.copy(anchor);
       group.localToWorld(worldAnchor);
-      const swayPhase = i * 1.7 + time * 1.4;
+      const swayPhase = (ribbon.mesh.userData.phase as number) + time * 1.4;
+      const ribbonLength = ribbon.mesh.userData.length as number;
       const count = ribbon.mesh.geometry.attributes.position.count / 2;
       const pts: THREE.Vector3[] = [];
       for (let j = 0; j < count; j++) {
         const t = j / (count - 1);
         pointsBuffer
           .copy(worldAnchor)
-          .addScaledVector(trail, -t * tentacleLength * 0.55)
-          .addScaledVector(up, -t * tentacleLength * droop);
+          .addScaledVector(trail, -t * ribbonLength * 0.55)
+          .addScaledVector(up, -t * ribbonLength * droop);
         const sway = Math.sin(swayPhase - t * 2.6) * 0.16 * t;
         const swayZ = Math.cos(swayPhase * 0.8 - t * 2.1) * 0.14 * t;
         pointsBuffer.x += sway;
@@ -858,6 +911,7 @@ export function createJelly(species: JellySpecies): JellyModel {
     for (let i = 0; i < arms.length; i++) {
       const ribbon = arms[i];
       const angle = ribbon.mesh.userData.angle as number;
+      const armLength = ribbon.mesh.userData.length as number;
       const count = ribbon.mesh.geometry.attributes.position.count / 2;
       const pts: THREE.Vector3[] = [];
       for (let j = 0; j < count; j++) {
@@ -866,8 +920,8 @@ export function createJelly(species: JellySpecies): JellyModel {
         group.localToWorld(worldAnchor);
         pointsBuffer
           .copy(worldAnchor)
-          .addScaledVector(trail, -t * 1.3)
-          .addScaledVector(up, -t * 2.0 * droop);
+          .addScaledVector(trail, -t * armLength * 0.8)
+          .addScaledVector(up, -t * armLength * 1.2 * droop);
         const frill = Math.sin(t * 9 + time * 2.2 + i) * 0.1 * t;
         pointsBuffer.x += Math.cos(angle) * frill;
         pointsBuffer.z += Math.sin(angle) * frill;

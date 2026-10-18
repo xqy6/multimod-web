@@ -15,13 +15,14 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      selfDestroying: true,
       includeAssets: ["icons/icon-192.png", "icons/icon-512.png"],
       manifest: {
-        name: "嘉兴 3D 旅行沙盘",
-        short_name: "嘉兴沙盘",
-        description: "嘉兴九大核心景点的 3D 微缩旅行导览",
-        theme_color: "#0a0b10",
-        background_color: "#0a0b10",
+        name: "Ocean Shallows",
+        short_name: "Ocean",
+        description: "A living WebGL tropical sea with rays and jellyfish you can throw into the water.",
+        theme_color: "#0b3b48",
+        background_color: "#082b36",
         display: "standalone",
         start_url: "./",
         icons: [
