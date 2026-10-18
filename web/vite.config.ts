@@ -1,4 +1,4 @@
-import { fileURLToPath, URL } from "node:url";
+﻿import { fileURLToPath, URL } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -17,9 +17,9 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icons/icon-192.png", "icons/icon-512.png"],
       manifest: {
-        name: "多功能 Web 平台",
-        short_name: "MODULO",
-        description: "AI 建站生成、小游戏中心、内置浏览器与实时聊天室",
+        name: "嘉兴 3D 旅行沙盘",
+        short_name: "嘉兴沙盘",
+        description: "嘉兴九大核心景点的 3D 微缩旅行导览",
         theme_color: "#0a0b10",
         background_color: "#0a0b10",
         display: "standalone",
@@ -43,6 +43,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
         navigateFallback: "index.html",
         cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.endsWith(".mp4"),

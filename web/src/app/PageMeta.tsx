@@ -5,9 +5,15 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 const pages = [
   {
     path: "/home",
-    title: "MODULO - 多功能 Web 平台",
+    title: "Ocean Shallows | A Top-Down Tropical Sea",
     description:
-      "AI 建站生成、小游戏中心、内置浏览器、实时聊天室与网盘，一个平台组合出可部署的完整网站。",
+      "Ocean Shallows is a top-down tropical sea in WebGL: GPU ripple simulation, caustics, breaking surf, a swaying palm, and rays and jellyfish you can throw into the water.",
+  },
+  {
+    path: "/jiaxing",
+    title: "嘉兴 3D 旅行沙盘 | 东方山水微缩导览",
+    description:
+      "以 Three.js 构建的嘉兴 3D 微缩旅行沙盘，包含南湖、乌镇、西塘、盐官、南北湖等九处核心景点与游玩建议。",
   },
   {
     path: "/login",
@@ -84,24 +90,24 @@ export function PageMeta() {
       (item) => pathname === item.path || pathname.startsWith(`${item.path}/`),
     ) ?? pages[0];
   const jsonLd =
-    page.path === "/home"
+    page.path === "/home" || page.path === "/ocean-shallows"
       ? [
           {
             "@context": "https://schema.org",
             "@type": "WebSite",
-            name: "MODULO",
-            alternateName: "多功能 Web 平台",
+            name: "Ocean Shallows",
+            alternateName: "Ocean Shallows — a top-down tropical sea",
             url:
               typeof window === "undefined"
                 ? "https://xieqiyan.pages.dev"
                 : window.location.origin,
-            inLanguage: "zh-CN",
+            inLanguage: "en",
             description: page.description,
           },
           {
             "@context": "https://schema.org",
             "@type": "Organization",
-            name: "MODULO",
+            name: "Ocean Shallows",
             url:
               typeof window === "undefined"
                 ? "https://xieqiyan.pages.dev"
