@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+﻿import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
@@ -11,6 +11,8 @@ import { useAuthStore } from "@/stores/auth";
 import { useThemeStore } from "@/stores/theme";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
+const OceanShallowsPage = lazy(() => import("@/pages/OceanShallowsPage"));
+const JiaxingMapPage = lazy(() => import("@/pages/JiaxingMapPage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const AdminPage = lazy(() => import("@/pages/AdminPage"));
 const WorkspacePage = lazy(() => import("@/pages/WorkspacePage"));
@@ -60,6 +62,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomeRedirect />} />
             <Route path="/home" element={<HomePage />} />
+            <Route path="/ocean-shallows" element={<OceanShallowsPage />} />
+            <Route path="/jiaxing" element={<JiaxingMapPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/share/:token" element={<SharePage />} />
             <Route
