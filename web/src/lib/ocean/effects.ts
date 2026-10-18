@@ -35,6 +35,7 @@ export type Effects = {
   silt: (x: number, y: number, z: number) => void;
   update: (dt: number, time: number, camera: THREE.Camera) => void;
   setRain: (amount: number) => void;
+  setWhirlpool: (x: number, z: number, strength: number) => void;
   setQuality: (quality: number) => void;
   dispose: () => void;
 };
@@ -230,6 +231,69 @@ export function createEffects(options: {
 
   let quality = 1;
 
+  // ---- whirlpool vortex -------------------------------------------------
+  const whirlpoolGeometry = new THREE.PlaneGeometry(24, 24);
+  whirlpoolGeometry.rotateX(-Math.PI / 2);
+  const whirlpoolMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uStrength: { value: 0 },
+      uFoam: { value: new THREE.Color(0.88, 0.98, 0.92) },
+      uDeep: { value: new THREE.Color(0.012, 0.11, 0.13) },
+    },
+    vertexShader: /* glsl */ `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      precision highp float;
+      uniform float uTime;
+      uniform float uStrength;
+      uniform vec3 uFoam;
+      uniform vec3 uDeep;
+      varying vec2 vUv;
+      void main() {
+        vec2 p = vUv * 2.0 - 1.0;
+        float r = length(p);
+        if (r > 1.0) discard;
+        float a = atan(p.y, p.x);
+        float edge = smoothstep(1.0, 0.68, r);
+        float spiralA = a * 3.0 + log(r + 0.08) * 8.0 - uTime * 5.2;
+        float spiralB = a * 5.0 - log(r + 0.05) * 11.0 + uTime * 7.4;
+        float armsA = smoothstep(0.2, 0.78, sin(spiralA) * 0.5 + 0.5);
+        float armsB = smoothstep(0.55, 0.94, sin(spiralB) * 0.5 + 0.5);
+        float ripple = smoothstep(0.5, 0.93, sin(r * 44.0 - uTime * 6.0) * 0.5 + 0.5);
+        float outerRing = smoothstep(0.045, 0.0, abs(r - 0.86));
+        float innerRing = smoothstep(0.025, 0.0, abs(r - 0.36));
+        float foam = (armsA * 0.58 + armsB * 0.35 + ripple * 0.2 + outerRing * 0.55 + innerRing * 0.32) * edge;
+        foam *= smoothstep(0.08, 0.3, r);
+        float alphaFoam = uStrength * clamp(foam, 0.0, 1.0) * 0.72;
+        float alphaDark = uStrength * (1.0 - smoothstep(0.1, 0.78, r)) * 0.48;
+        vec3 color = mix(uDeep, uFoam, clamp(alphaFoam / (alphaDark + alphaFoam + 0.001), 0.0, 1.0));
+        float alpha = clamp(alphaDark + alphaFoam, 0.0, 0.88);
+        if (alpha < 0.01) discard;
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    depthTest: true,
+    side: THREE.DoubleSide,
+  });
+  const whirlpoolMesh = new THREE.Mesh(whirlpoolGeometry, whirlpoolMaterial);
+  whirlpoolMesh.layers.set(3);
+  whirlpoolMesh.renderOrder = 7;
+  whirlpoolMesh.visible = false;
+  scene.add(whirlpoolMesh);
+
+  let whirlpoolX = 2;
+  let whirlpoolZ = 0;
+  let whirlpoolStrength = 0;
+  let whirlpoolFoamClock = 0;
+
   return {
     splash,
     drop,
@@ -239,10 +303,48 @@ export function createEffects(options: {
       rainMaterial.opacity = amount * 0.55;
       rain.visible = amount > 0.01;
     },
+    setWhirlpool(x, z, strength) {
+      whirlpoolX = x;
+      whirlpoolZ = z;
+      whirlpoolStrength = strength;
+      whirlpoolMesh.visible = strength > 0.02;
+      whirlpoolMesh.position.set(x, 0.065, z);
+      whirlpoolMesh.scale.setScalar(0.82 + strength * 0.28);
+    },
     setQuality(next) {
       quality = next;
     },
-    update(dt) {
+    update(dt, time) {
+      whirlpoolMaterial.uniforms.uTime.value = time;
+      whirlpoolMaterial.uniforms.uStrength.value = whirlpoolStrength;
+
+      // Fine orbiting foam makes the vortex read immediately even when the
+      // player is looking at a still frame.
+      if (whirlpoolStrength > 0.025) {
+        whirlpoolFoamClock += dt * (7 + whirlpoolStrength * 18);
+        while (whirlpoolFoamClock >= 1) {
+          whirlpoolFoamClock -= 1;
+          const angle = Math.random() * Math.PI * 2;
+          const radius = 2.2 + Math.random() * 6.2;
+          const x = whirlpoolX + Math.cos(angle) * radius;
+          const z = whirlpoolZ + Math.sin(angle) * radius;
+          const tangent = 1.4 + Math.random() * 2.2;
+          spawn({
+            position: new THREE.Vector3(x, 0.08, z),
+            velocity: new THREE.Vector3(
+              -Math.sin(angle) * tangent,
+              0.15 + Math.random() * 0.45,
+              Math.cos(angle) * tangent,
+            ),
+            life: 0,
+            maxLife: 0.65 + Math.random() * 0.55,
+            size: 0.1 + Math.random() * 0.22,
+            gravity: -0.15,
+            kind: "foam",
+          });
+        }
+      }
+
       // --- rain -----------------------------------------------------
       if (rainAmount > 0.01) {
         const array = rainGeometry.attributes.position as THREE.BufferAttribute;
@@ -330,6 +432,9 @@ export function createEffects(options: {
       }
       rainGeometry.dispose();
       rainMaterial.dispose();
+      whirlpoolGeometry.dispose();
+      whirlpoolMaterial.dispose();
+      scene.remove(whirlpoolMesh);
       void scene;
     },
   };
