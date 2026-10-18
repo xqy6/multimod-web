@@ -197,11 +197,7 @@ export const WATER_VERTEX = /* glsl */ `
     }
 
     vec2 wv = p - uWhirl.xy;
-    float whirlR = length(wv);
-    float whirlFalloff = exp(-dot(wv, wv) / 95.0);
-    float whirlAngle = atan(wv.y, wv.x);
-    h -= whirlFalloff * uWhirl.z * 1.65;
-    h += sin(whirlAngle * 3.0 - whirlR * 1.5 + uTime * 4.2) * whirlFalloff * uWhirl.z * 0.26;
+    h -= exp(-dot(wv, wv) / 60.0) * uWhirl.z * 0.45;
 
     world.y += h;
     vWorld = world.xyz;
@@ -296,10 +292,8 @@ export const WATER_FRAGMENT = /* glsl */ `
     // Whirlpool swirls the surface normals.
     vec2 wv = p - uWhirl.xy;
     float wd = length(wv);
-    float swirl = uWhirl.z * exp(-wd * wd / 78.0);
-    vec2 tangent = vec2(-wv.y, wv.x) / max(wd, 0.001);
-    grad += tangent * swirl * 1.35;
-    grad += normalize(wv + vec2(0.001)) * sin(wd * 2.6 - uTime * 4.8) * swirl * 0.3;
+    float swirl = uWhirl.z * exp(-wd * wd / 55.0);
+    grad += vec2(-wv.y, wv.x) / max(wd, 0.001) * swirl * 0.55;
 
     vec3 normal = normalize(vec3(-grad.x, 1.0, -grad.y));
     vec3 viewDir = normalize(uCamPos - vWorld);
@@ -376,11 +370,6 @@ export const WATER_FRAGMENT = /* glsl */ `
     // --- palm shadow ----------------------------------------------------
     float shadow = palmShadow(p);
     color *= 1.0 - shadow * 0.62;
-
-    // --- whirlpool foam halo -------------------------------------------
-    float whirlFoam = uWhirl.z * exp(-pow((wd - 6.5) / 2.8, 2.0));
-    float whirlFoamPattern = smoothstep(0.54, 0.86, fbm2(p * 2.1 + vec2(uTime * 0.75, -uTime * 0.55)));
-    color = mix(color, vec3(0.82, 0.97, 0.9), clamp(whirlFoam * whirlFoamPattern * 0.34, 0.0, 0.42));
 
     // --- rain -----------------------------------------------------------
     color += vec3(0.05) * uRain * (0.5 + 0.5 * noise2(p * 14.0 + uTime));

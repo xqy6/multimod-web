@@ -176,12 +176,6 @@
   opacity: 0.6;
 }
 
-.os-hint.is-whirlpool {
-  color: #effff9;
-  background: rgba(3, 50, 48, 0.56);
-  box-shadow: 0 0 26px rgba(105, 255, 222, 0.24);
-}
-
 .os-hint {
   position: absolute;
   left: 50%;

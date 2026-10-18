@@ -205,11 +205,7 @@ export default function OceanShallowsPage() {
           })}
         </div>
 
-        <p className={`os-hint${active.whirl ? " is-whirlpool" : ""}`} aria-live="polite">
-          {active.whirl
-            ? "Whirlpool active · drag the vortex to move it"
-            : "Tap a card to throw a creature · Drag it to place it yourself"}
-        </p>
+        <p className="os-hint">Tap a card to throw a creature · Drag it to place it yourself</p>
       </div>
 
       <section className="os-dock" aria-label="Creatures">

@@ -183,7 +183,7 @@ export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {
   let calm = 0;
   let whirlpoolActive = false;
   let whirlpoolStrength = 0;
-  const whirlpool = new THREE.Vector2(2, 0);
+  const whirlpool = new THREE.Vector2(4, 6);
   let draggingWhirlpool = false;
   let lastRipple = 0;
   let heldId: number | null = null;
@@ -280,7 +280,6 @@ export function createOceanScene(canvas: HTMLCanvasElement, options: Options = {
     water.uniforms.uCamPos.value.copy(camera.position);
     water.uniforms.uPalmOffset.value.copy(palm.shadowUniforms.palmOffset);
     water.uniforms.uWhirl.value.set(whirlpool.x, whirlpool.y, whirlpoolStrength * (whirlpoolActive ? 1 : 0));
-    effects.setWhirlpool(whirlpool.x, whirlpool.y, whirlpoolStrength * (whirlpoolActive ? 1 : 0));
     water.uniforms.uRain.value = rain;
     water.uniforms.uSwell.value = THREE.MathUtils.lerp(1, 0.32, calm);
 
